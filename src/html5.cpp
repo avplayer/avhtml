@@ -103,6 +103,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 
 	char c;
 
+	bool ignore_blank = true;
+
 	while(html_page_source) // EOF 检测
 	{
 		// 获取一个字符
@@ -123,10 +125,12 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							state = 1;
 							if (!content.empty())
 								current_ptr->contents.push_back(std::move(content));
+							ignore_blank = (tag != "script");
 						}
 					}
 					break;
 					CASE_BLANK :
+					if(ignore_blank)
 						break;
 					default:
 						content += c;
@@ -301,6 +305,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 								_current_ptr = _current_ptr->m_parent;
 							}
 
+							tag.clear();
 							if (!_current_ptr)
 							{
 								// 找不到对应的 tag 要咋关闭... 忽略之
