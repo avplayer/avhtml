@@ -238,7 +238,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					{
 						pre_state = state;
 						state = 4;
-					}
+					}break;
 					case '>':
 					{
 						pre_state = state;
