@@ -184,7 +184,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						// tag 解析完毕, 正式进入 下一个 tag
 						pre_state = state;
 						state = 0;
-						if ( current_ptr->tag_name[0] = '!')
+						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
 						}
@@ -243,6 +243,9 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					{
 						pre_state = state;
 						state = 0;
+						current_ptr->attributes[k] = "";
+						k.clear();
+						v.clear();
 					}
 					break;
 					default:
