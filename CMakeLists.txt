@@ -17,6 +17,6 @@ add_library(html5 STATIC src/html5.cpp)
 
 target_link_libraries(html5 ${Boost_LIBRARIES})
 
-
 add_executable(html5test test/test.cpp)
+
 target_link_libraries(html5test html5)

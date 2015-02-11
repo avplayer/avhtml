@@ -21,10 +21,10 @@ namespace html{
 	public:
 
 		// 默认构造.
-		dom() noexcept;
+		dom(dom* parent = nullptr) noexcept;
 
 		// 从html构造 DOM.
-		explicit dom(const std::string& html_page);
+		explicit dom(const std::string& html_page, dom* parent = nullptr);
 
 	public:
 		// 喂入一html片段.
@@ -46,7 +46,9 @@ namespace html{
 		std::map<std::string, std::string> attributes;
 		std::string tag_name;
 
+		std::vector<std::string> contents;
+
 		std::vector<dom_ptr> children;
-		dom_weak_ptr parent;
+		dom* m_parent;
 	};
 };

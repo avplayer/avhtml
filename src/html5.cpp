@@ -1,13 +1,14 @@
 
 #include "html5.hpp"
 
-html::dom::dom() noexcept
+html::dom::dom(dom* parent) noexcept
     : html_parser_feeder(std::bind(&dom::html_parser, this, std::placeholders::_1))
+	, m_parent(parent)
 {
 }
 
-html::dom::dom(const std::string& html_page)
-	: dom()
+html::dom::dom(const std::string& html_page, dom* parent)
+	: dom(parent)
 {
 	append_partial_html(html_page);
 }
@@ -23,7 +24,7 @@ html::dom html::dom::operator[](const std::string& selector)
 	html::dom ret_dom;
 
 
-	
+
 
 	return ret_dom;
 }
@@ -49,11 +50,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 	std::string tag; //当前处理的 tag
 	std::string content; // 当前 tag 下的内容
 	std::string k,v;
-	std::map<std::string,std::string> attribute;
 
 	dom * current_ptr = this;
-
-	std::vector<dom*> tag_stack = {this};
 
 	while(html_page_source) // EOF 检测
 	{
@@ -73,6 +71,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							// 进入 < tag 解析状态
 							pre_state = state;
 							state = 1;
+							current_ptr->contents.push_back(std::move(content));
 						}
 					}
 					break;
@@ -99,33 +98,29 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						{
 							pre_state = state;
 							state = 2;
+
+							dom_ptr new_dom = std::make_shared<dom>(current_ptr);
+							new_dom->tag_name = tag;
+
+							current_ptr->children.push_back(new_dom);
+
+							current_ptr = new_dom.get();
 						}
 					}
 					break;
 					case '>':
-					{
 						// tag 解析完毕, 正式进入 下一个 tag
 						pre_state = state;
 						state = 0;
-
-						dom_ptr new_dom = std::make_shared<dom>();
-
-						current_ptr->tag_name = tag;
-						current_ptr->children.push_back(new_dom);
-
-						tag_stack.push_back(current_ptr);
-
-						current_ptr = new_dom.get();
-
-					}break;
+					break;
 					case '/':
-					{
 						pre_state = state;
 						state = 7;
-
-					}break;
+					break;
 					// 为 tag 赋值.
 					default:
+						pre_state = state;
+						state = 2;
 						tag += c;
 				}
 			}
@@ -136,6 +131,31 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				{
 					CASE_BLANK :
 					break;
+					case '>': // 马上就关闭 tag 了啊
+					{
+						// tag 解析完毕, 正式进入 下一个 tag
+						pre_state = state;
+						state = 0;
+					}break;
+					case '/':
+					{
+						// 直接关闭本 tag 了
+						// 下一个必须是 '>'
+						c = getc();
+
+						if (c!= '>')
+						{
+							// TODO 报告错误
+						}
+
+						pre_state = state;
+						state = 0;
+
+						if (current_ptr->m_parent)
+							current_ptr = current_ptr->m_parent;
+						else
+							current_ptr = this;
+					}break;
 					default:
 						pre_state = state;
 						state = 3;
@@ -160,6 +180,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						pre_state = state;
 						state = 4;
 					}
+					break;
 					default:
 						k += c;
 				}
@@ -208,8 +229,15 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						current_ptr->attributes[k] = v;
 						k.clear();
 						v.clear();
-						break;
+					}else
+					{
+						v += c;
 					}
+					break;
+					case '\\':
+						// 转义词
+						c += getc();
+					break;
 					default:
 						v += c;
 				}
@@ -220,24 +248,46 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				{
 					case '>':
 					{
-						// 因为上一个是  /
-						// 所以如果这个是 >
-						// 意味着马上关闭当前 tag
 
+						if(!tag.empty())
+						{
+							// 来, 关闭 tag 了
+							// 注意, HTML 里, tag 可以越级关闭
+
+							// 因此需要进行回朔查找
+
+							auto _current_ptr = current_ptr;
+
+							while (_current_ptr && _current_ptr->tag_name != tag)
+							{
+								_current_ptr = _current_ptr->m_parent;
+							}
+
+							if (!_current_ptr)
+							{
+								// 找不到对应的 tag 要咋关闭... 忽略之
+								break;
+							}
+
+							current_ptr = _current_ptr;
+
+							// 找到了要关闭的 tag
+
+							// 那就退出本 dom 节点
+							if (current_ptr->m_parent)
+								current_ptr = current_ptr->m_parent;
+							else
+								current_ptr = this;
+							state = 0;
+						}
 					}break;
+					CASE_BLANK:
+					break;
 					default:
 					{
 						// 这个时候需要吃到  >
-
+						tag += c;
 					}
-				}
-				if (c != '>')
-				{
-					// 居然在  / 后面不是 >
-					// 执行到这里, 一般是  <div/>
-					// 这种自动关闭的, 上一个字符是 /
-					// 所以切换到这个状态, 期待的下一个字符立即是 >
-					state = pre_state;
 				}
 				break;
 			}
