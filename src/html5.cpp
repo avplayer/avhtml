@@ -1,6 +1,16 @@
 
 #include "html5.hpp"
 
+html::selector::selector(const std::string& s)
+	: m_select_string(s)
+{
+}
+
+html::selector::selector(std::string&&s)
+	: m_select_string(s)
+{
+}
+
 html::dom::dom(dom* parent) noexcept
     : html_parser_feeder(std::bind(&dom::html_parser, this, std::placeholders::_1))
 	, m_parent(parent)
@@ -19,9 +29,11 @@ bool html::dom::append_partial_html(const std::string& str)
 		html_parser_feeder(c);
 }
 
-html::dom html::dom::operator[](const std::string& selector)
+html::dom html::dom::operator[](const selector& selector_)
 {
 	html::dom ret_dom;
+
+
 
 
 
@@ -31,6 +43,8 @@ html::dom html::dom::operator[](const std::string& selector)
 
 std::string html::dom::to_plain_text()
 {
+
+
 	std::string ret;
 	return ret;
 }
@@ -41,8 +55,35 @@ std::string html::dom::to_plain_text()
 void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type& html_page_source)
 {
 	auto getc = [&html_page_source](){
+		auto c = html_page_source.get();
 		html_page_source();
-		return html_page_source.get();
+		return c;
+	};
+
+	auto get_escape = [&getc]() -> char
+	{
+		return getc();
+	};
+
+	auto get_string = [&getc, &get_escape](char quote_char){
+
+		std::string ret;
+
+		auto c = getc();
+
+		while ( (c != quote_char) && (c!= '\n'))
+		{
+			if ( c == '\'' )
+			{
+				c += get_escape();
+			}else
+			{
+				ret += c;
+			}
+			c = getc();
+		}
+
+		return ret;
 	};
 
 	int pre_state=0, state = 0;
@@ -53,10 +94,12 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 
 	dom * current_ptr = this;
 
+	char c;
+
 	while(html_page_source) // EOF 检测
 	{
 		// 获取一个字符
-		auto c = getc();
+		c = getc();
 
 		switch(state)
 		{
@@ -71,7 +114,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							// 进入 < tag 解析状态
 							pre_state = state;
 							state = 1;
-							current_ptr->contents.push_back(std::move(content));
+							if (!content.empty())
+								current_ptr->contents.push_back(std::move(content));
 						}
 					}
 					break;
@@ -100,7 +144,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							state = 2;
 
 							dom_ptr new_dom = std::make_shared<dom>(current_ptr);
-							new_dom->tag_name = tag;
+							new_dom->tag_name = std::move(tag);
 
 							current_ptr->children.push_back(new_dom);
 
@@ -108,19 +152,23 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						}
 					}
 					break;
-					case '>':
-						// tag 解析完毕, 正式进入 下一个 tag
+					case '>': // tag 解析完毕, 正式进入 下一个 tag
+					{
 						pre_state = state;
 						state = 0;
+
+						dom_ptr new_dom = std::make_shared<dom>(current_ptr);
+						new_dom->tag_name = std::move(tag);
+						current_ptr->children.push_back(new_dom);
+						current_ptr = new_dom.get();
+					}
 					break;
 					case '/':
 						pre_state = state;
-						state = 7;
+						state = 5;
 					break;
 					// 为 tag 赋值.
 					default:
-						pre_state = state;
-						state = 2;
 						tag += c;
 				}
 			}
@@ -136,6 +184,10 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						// tag 解析完毕, 正式进入 下一个 tag
 						pre_state = state;
 						state = 0;
+						if ( current_ptr->tag_name[0] = '!')
+						{
+							current_ptr = current_ptr->m_parent;
+						}
 					}break;
 					case '/':
 					{
@@ -155,6 +207,13 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							current_ptr = current_ptr->m_parent;
 						else
 							current_ptr = this;
+					}break;
+					case '\"':
+					case '\'':
+					{
+						k = get_string(c);
+						pre_state = state;
+						state = 3;
 					}break;
 					default:
 						pre_state = state;
@@ -180,6 +239,11 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						pre_state = state;
 						state = 4;
 					}
+					case '>':
+					{
+						pre_state = state;
+						state = 0;
+					}
 					break;
 					default:
 						k += c;
@@ -190,17 +254,15 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				switch (c)
 				{
 					case '\"':
-						state = 5;
-						break;
 					case '\'':
-						state = 6;
-						break;
+					{
+						v = get_string(c);
+					}
 					CASE_BLANK :
 					{
 						state = 2;
-						current_ptr->attributes[k] = v;
+						current_ptr->attributes[k] = std::move(v);
 						k.clear();
-						v.clear();
 					}
 					break;
 					default:
@@ -209,40 +271,6 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 			}
 			break;
 			case 5:
-			case 6:
-			{
-				switch(c)
-				{
-					case '\n':
-					{
-						// FIXME 跳到 tag 结束
-						state = 0;
-						current_ptr->attributes[k] = v;
-						k.clear();
-						v.clear();
-					}break;
-					case '\'':
-					case '\"':
-					if ( (state == 5 && c == '\"') || (state == 6 && c == '\''))
-					{
-						state = 2;
-						current_ptr->attributes[k] = v;
-						k.clear();
-						v.clear();
-					}else
-					{
-						v += c;
-					}
-					break;
-					case '\\':
-						// 转义词
-						c += getc();
-					break;
-					default:
-						v += c;
-				}
-			}break;
-			case 7:
 			{
 				switch(c)
 				{
@@ -290,22 +318,6 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					}
 				}
 				break;
-			}
-			case 8:
-			{
-				switch(c)
-				{
-					CASE_BLANK:
-					break;
-					case '/':
-					{
-
-					}break;
-					default:
-					{
-
-					}
-				}
 			}
 		}
 	}

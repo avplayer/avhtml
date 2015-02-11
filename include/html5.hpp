@@ -15,6 +15,28 @@ namespace html{
 	typedef std::shared_ptr<dom> dom_ptr;
 	typedef std::weak_ptr<dom> dom_weak_ptr;
 
+	class selector
+	{
+	public:
+		selector(const std::string&);
+		selector(std::string&&);
+
+		selector(const char* s)
+			: selector(std::string(s))
+		{}
+
+		template<int N>
+		selector(const char s[N])
+			: selector(std::string(s))
+		{};
+
+		friend class dom;
+
+	private:
+
+		std::string m_select_string;
+	};
+
 	class dom
 	{
 
@@ -31,7 +53,7 @@ namespace html{
 		bool append_partial_html(const std::string &);
 
 	public:
-		dom operator[](const std::string& selector);
+		dom operator[](const selector&);
 
 		std::string to_html();
 
