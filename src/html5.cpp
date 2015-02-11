@@ -4,11 +4,18 @@
 html::selector::selector(const std::string& s)
 	: m_select_string(s)
 {
+	build_matchers();
 }
 
 html::selector::selector(std::string&&s)
 	: m_select_string(s)
 {
+	build_matchers();
+}
+
+void html::selector::build_matchers()
+{
+	// 从 选择字符构建匹配链
 }
 
 html::dom::dom(dom* parent) noexcept
@@ -29,14 +36,43 @@ bool html::dom::append_partial_html(const std::string& str)
 		html_parser_feeder(c);
 }
 
+template<class Handler>
+void html::dom::dom_walk(html::dom_ptr d, Handler handler)
+{
+	for( auto & c : d->children)
+	{
+		dom_walk(c, handler);
+	}
+
+	handler(d);
+}
+
+bool html::selector::selector_matcher::operator()(const html::dom& d) const
+{
+	if (!matching_tag_name.empty())
+	{
+		return d.tag_name == matching_tag_name;
+	}
+	return false;
+}
+
 html::dom html::dom::operator[](const selector& selector_)
 {
 	html::dom ret_dom;
 
-
-
-
-
+	for( auto & c : children)
+	{
+		dom_walk(c, [this, &ret_dom, selector_](html::dom_ptr i)
+		{
+			for (auto & matcher : selector_)
+			{
+				if (matcher(*i))
+				{
+					ret_dom.children.push_back(i);
+				}
+			}
+		});
+	}
 
 	return ret_dom;
 }

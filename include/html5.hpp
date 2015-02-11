@@ -32,7 +32,31 @@ namespace html{
 
 		friend class dom;
 
+	protected:
+
+		struct selector_matcher{
+			bool operator()(const dom&) const;
+
+		private:
+			std::string matching_tag_name;
+			std::string matching_id;
+			std::string matching_class;
+			std::string matching_name;
+			std::string matching_index;
+		};
+
+		std::vector<selector_matcher>::const_iterator begin() const {
+			return m_matchers.begin();
+		}
+
+		std::vector<selector_matcher>::const_iterator end() const {
+			return m_matchers.end();
+		}
+
 	private:
+		void build_matchers();
+
+		std::vector<selector_matcher> m_matchers;
 
 		std::string m_select_string;
 	};
@@ -72,5 +96,10 @@ namespace html{
 
 		std::vector<dom_ptr> children;
 		dom* m_parent;
+
+		template<class T>
+		static void dom_walk(html::dom_ptr d, T handler);
+
+		friend class selector;
 	};
 };
