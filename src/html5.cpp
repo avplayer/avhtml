@@ -18,6 +18,23 @@ bool html::dom::append_partial_html(const std::string& str)
 		html_parser_feeder(c);
 }
 
+html::dom html::dom::operator[](const std::string& selector)
+{
+	html::dom ret_dom;
+
+
+	
+
+	return ret_dom;
+}
+
+std::string html::dom::to_plain_text()
+{
+	std::string ret;
+	return ret;
+}
+
+
 #define CASE_BLANK case ' ': case '\r': case '\n': case '\t'
 
 void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type& html_page_source)
