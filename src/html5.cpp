@@ -54,6 +54,8 @@ std::string html::dom::to_plain_text()
 
 void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type& html_page_source)
 {
+	int pre_state = 0, state = 0;
+
 	auto getc = [&html_page_source](){
 		auto c = html_page_source.get();
 		html_page_source();
@@ -65,7 +67,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 		return getc();
 	};
 
-	auto get_string = [&getc, &get_escape](char quote_char){
+	auto get_string = [&getc, &get_escape, &pre_state, &state](char quote_char){
 
 		std::string ret;
 
@@ -83,10 +85,15 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 			c = getc();
 		}
 
+		if (c == '\n')
+		{
+			pre_state = state;
+			state = 0;
+		}
+
 		return ret;
 	};
 
-	int pre_state=0, state = 0;
 
 	std::string tag; //当前处理的 tag
 	std::string content; // 当前 tag 下的内容
@@ -211,9 +218,9 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					case '\"':
 					case '\'':
 					{
-						k = get_string(c);
 						pre_state = state;
 						state = 3;
+						k = get_string(c);
 					}break;
 					default:
 						pre_state = state;
