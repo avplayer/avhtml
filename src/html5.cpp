@@ -186,6 +186,7 @@ html::dom& html::dom::operator=(const html::dom& d)
     contents = d.contents;
     m_parent = d.m_parent;
 	children = d.children;
+	return *this;
 }
 
 bool html::dom::append_partial_html(const std::string& str)
@@ -198,6 +199,7 @@ bool html::dom::append_partial_html(const std::string& str)
 
 	for(auto c: str)
 		html_parser_feeder(c);
+	return true;
 }
 
 template<class Handler>

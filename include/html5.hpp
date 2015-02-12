@@ -9,6 +9,10 @@
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 
+#ifdef _MSC_VER
+#	define noexcept throw()
+#endif
+
 namespace html{
 
 	class dom;
