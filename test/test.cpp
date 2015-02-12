@@ -17,11 +17,25 @@ int main(int argc, char *argv[])
 	}
 	else {
 		html::dom cu_page;
-		std::ifstream ifs(argv[1]);
+		std::ifstream ifs;
 
-		ifs >> std::noskipws;
+		std::istream * instream;
 
-		std::string test_page((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+		std::string infile = argv[1];
+
+		if (infile == "-")
+		{
+			instream = &std::cin;
+		}
+		else
+		{
+			ifs.open(infile.c_str());
+			instream = & ifs;
+		}
+
+		(*instream) >> std::noskipws;
+
+		std::string test_page((std::istreambuf_iterator<char>(* instream)), std::istreambuf_iterator<char>());
 		cu_page.append_partial_html(test_page);
 
 		auto charset = cu_page.charset();

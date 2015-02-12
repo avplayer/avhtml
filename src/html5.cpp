@@ -414,7 +414,7 @@ std::string html::dom::to_plain_text() const
 {
 	std::string ret;
 
-	if (tag_name != "script" && tag_name != "<!--")
+	if (!strcmp_ignore_case(tag_name, "script") && tag_name != "<!--")
 	{
 		ret += content_text;
 
