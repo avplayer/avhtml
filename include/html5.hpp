@@ -44,6 +44,7 @@ namespace html{
 			std::string matching_class;
 			std::string matching_name;
 			std::string matching_index;
+			std::string matching_attr;
 			bool operator()(const dom&) const;
 		};
 
@@ -94,7 +95,7 @@ namespace html{
 		bool append_partial_html(const std::string &);
 
 	public:
-		dom operator[](const selector&);
+		dom operator[](const selector&) const;
 		void clear(){
 			attributes.clear();
 			tag_name.clear();
@@ -106,6 +107,9 @@ namespace html{
 		std::string to_html() const;
 
 		std::string to_plain_text() const;
+
+		// return charset of the page if page contain meta http-equiv= content="charset="
+		std::string charset() const;
 
 	private:
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);

@@ -1,6 +1,8 @@
 
 #include "html5.hpp"
 
+#include <boost/regex.hpp>
+
 html::selector::selector(const std::string& s)
 	: m_select_string(s)
 {
@@ -11,6 +13,13 @@ html::selector::selector(std::string&&s)
 	: m_select_string(s)
 {
 	build_matchers();
+}
+
+static bool strcmp_ignore_case(const std::string& a, const std::string& b)
+{
+	if ( a.size() == b.size())
+		return  strncasecmp(a.c_str(), b.c_str(), a.size()) == 0;
+	return false;
 }
 
 template<class GetChar, class GetEscape, class StateEscaper>
@@ -94,7 +103,7 @@ void html::selector::build_matchers()
 	do
 	{
 		c = getc();
-#	define METACHAR  0 : case ' ': case '.' : case '#' : case ':': case '['
+#	define METACHAR  0 : case '.' : case '#'
 		switch(state)
 		{
 			case 0:
@@ -105,7 +114,7 @@ void html::selector::build_matchers()
 					case '\\':
 						matcher_str += get_escape();
 						break;
-					case METACHAR:
+					case METACHAR: case ' ':
 						{
 							if (!matcher_str.empty())
 							{
@@ -123,9 +132,7 @@ void html::selector::build_matchers()
 										match_condition.matching_class = std::move(matcher_str);
 										break;
 								}
-
 								matcher.m_conditions.push_back(match_condition);
-
 							}
 							state = c;
 
@@ -138,6 +145,9 @@ void html::selector::build_matchers()
 							}
 						}
 						break;
+					case '[':
+						state = '[';
+						break;
 					default:
 						matcher_str += c;
 				}
@@ -145,6 +155,7 @@ void html::selector::build_matchers()
 			case ' ':
 			{
 				m_matchers.push_back(std::move(matcher));
+				state = 0;
 			}
 			break;
 			case ':':
@@ -162,9 +173,20 @@ void html::selector::build_matchers()
 			{
 				switch(c)
 				{
-					case METACHAR:
-						state = c;
+					case ']': // 匹配结束
+						state = 0;
+					case ' ':
+					{
+						condition match_condition;
+
+						match_condition.matching_attr = std::move(matcher_str);
+						matcher.m_conditions.push_back(match_condition);
 						break;
+					}
+					case METACHAR:
+					break;
+					default:
+						matcher_str += c;
 				}
 			}
 			break;
@@ -257,7 +279,7 @@ bool html::selector::condition::operator()(const html::dom& d) const
 {
 	if (!matching_tag_name.empty())
 	{
-		return d.tag_name == matching_tag_name;
+		return strcmp_ignore_case(d.tag_name, matching_tag_name);
 	}
 	if (!matching_id.empty())
 	{
@@ -274,6 +296,12 @@ bool html::selector::condition::operator()(const html::dom& d) const
 		{
 			return it->second == matching_class;
 		}
+	}
+
+	if(!matching_attr.empty())
+	{
+		auto it = d.attributes.find(matching_attr);
+		return it != d.attributes.end();
 	}
 
 	return false;
@@ -298,7 +326,7 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 	return true;
 }
 
-html::dom html::dom::operator[](const selector& selector_)
+html::dom html::dom::operator[](const selector& selector_) const
 {
 	html::dom selectee_dom;
 	html::dom matched_dom(*this);
@@ -331,6 +359,55 @@ html::dom html::dom::operator[](const selector& selector_)
 	}
 
 	return matched_dom;
+}
+
+static inline std::string get_char_set( std::string type,  const std::string & header )
+{
+	boost::cmatch what;
+	// 首先是 text/html; charset=XXX
+	boost::regex ex( "charset=([a-zA-Z0-9\\-_]+)" );
+	boost::regex ex2( "<meta charset=[\"\']?([a-zA-Z0-9\\-_]+)[\"\']?" );
+
+	if( boost::regex_search( type.c_str(), what, ex ) )
+	{
+		return what[1];
+	}
+	else if( boost::regex_search( type.c_str(), what, ex2 ) )
+	{
+		return what[1];
+	}
+	else if( boost::regex_search( header.c_str(), what, ex ) )
+	{
+		return what[1];
+	}
+	else if( boost::regex_search( header.c_str(), what, ex2 ) )
+	{
+		return what[1];
+	}
+
+	return "utf8";
+}
+
+std::string html::dom::charset() const
+{
+	std::string cset;
+	auto charset_dom = (*this)["meta [http-equiv][content]"];
+
+	for (auto & c : charset_dom.children)
+	{
+		dom_walk(c, [this, &cset](html::dom_ptr i)
+		{
+			if (strcmp_ignore_case(i->attributes["http-equiv"], "content-type"))
+			{
+				auto content= i->attributes["content"];
+
+				cset = get_char_set(content, "charset=utf8");
+				return false;
+			}
+			return true;
+		});
+	}
+	return cset;
 }
 
 std::string html::dom::to_plain_text() const
@@ -604,7 +681,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 
 							auto _current_ptr = current_ptr;
 
-							while (_current_ptr && _current_ptr->tag_name != tag)
+							while (_current_ptr && !strcmp_ignore_case(_current_ptr->tag_name, tag))
 							{
 								_current_ptr = _current_ptr->m_parent;
 							}
