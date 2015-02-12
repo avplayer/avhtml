@@ -100,13 +100,9 @@ namespace html{
 		std::string to_plain_text() const;
 
 	private:
-
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
 		boost::coroutines::asymmetric_coroutine<char>::push_type html_parser_feeder;
 		bool html_parser_feeder_inialized = false;
-
-	protected:
-		dom operator()(selector::selector_matcher_iterator first, selector::selector_matcher_iterator last);
 
 	protected:
 		std::map<std::string, std::string> attributes;
