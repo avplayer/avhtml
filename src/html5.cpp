@@ -441,7 +441,7 @@ void html::dom::to_html(std::ostream* out, int deep) const
 			for (auto a : attributes)
 			{
 				*out << ' ';
-				*out << a.first << "=" << a.second;
+				*out << a.first << "=\"" << a.second << "\"";
 			}
 		}
 		if (tag_name!="<!--")
@@ -512,7 +512,6 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 
 	char c;
 
-	bool ignore_blank = true;
 	std::vector<int> comment_stack;
 
 	while(html_page_source) // EOF 检测
@@ -539,12 +538,10 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 								content_node->content_text = std::move(content);
 								current_ptr->children.push_back(std::move(content_node));
 							}
-							ignore_blank = (tag != "script");
 						}
 					}
 					break;
 					CASE_BLANK :
-					if(ignore_blank)
 						break;
 					default:
 						content += c;
@@ -567,7 +564,6 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						{
 							pre_state = state;
 							state = 2;
-
 							dom_ptr new_dom = std::make_shared<dom>(current_ptr);
 							new_dom->tag_name = std::move(tag);
 
@@ -615,7 +611,11 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
+						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						{
+							state = 20;
 						}
+
 					}break;
 					case '/':
 					{
@@ -677,6 +677,9 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
+						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						{
+							state = 20;
 						}
 					}
 					break;
@@ -710,6 +713,9 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
+						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						{
+							state = 20;
 						}
 					}break;
 					default:
@@ -861,6 +867,144 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					default:
 						content += c;
 						state = pre_state;
+				}
+			}break;
+
+			case 20: // 处理 javascript
+			{
+				// 直到看到 </script>
+				switch(c)
+				{
+					case '<':
+					{
+						pre_state = state;
+						state = 21;
+					}
+					default:
+						content += c;
+				}
+			}break;
+			case 21:
+			{
+				switch(c)
+				{
+					case '/':
+					{
+						state = 22;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 22:
+			{
+				switch(c)
+				{
+					case 's':
+					case 'S':
+					{
+						state = 23;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 23:
+			{
+				switch(c)
+				{
+					case 'c':
+					case 'C':
+					{
+						state = 24;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 24:
+			{
+				switch(c)
+				{
+					case 'r':
+					case 'R':
+					{
+						state = 25;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 25:
+			{
+				switch(c)
+				{
+					case 'i':
+					case 'I':
+					{
+						state = 26;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 26:
+			{
+				switch(c)
+				{
+					case 'p':
+					case 'P':
+					{
+						state = 27;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 27:
+			{
+				switch(c)
+				{
+					case 't':
+					case 'T':
+					{
+						state = 28;
+						content += c;
+					}break;
+					default:
+						state = pre_state;
+						content += c;
+				}
+			}break;
+			case 28:
+			{
+				switch(c)
+				{
+					case '>':
+					{
+						state = 0;
+						{
+							for (int i =0 ; i < 8 ;i++)
+								content.pop_back();
+							current_ptr->content_text = std::move(content);
+							current_ptr = current_ptr->m_parent;
+						}
+					}break;
+					default:
+						state = pre_state;
+						content += c;
 				}
 			}break;
 		}
