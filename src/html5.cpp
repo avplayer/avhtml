@@ -582,6 +582,10 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						current_ptr->children.push_back(new_dom);
 						if(new_dom->tag_name[0] != '!')
 							current_ptr = new_dom.get();
+						if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						{
+							state = 20;
+						}
 					}
 					break;
 					case '/':
