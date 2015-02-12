@@ -107,23 +107,26 @@ void html::selector::build_matchers()
 						break;
 					case METACHAR:
 						{
-							condition match_condition;
-
-							switch(state)
+							if (!matcher_str.empty())
 							{
-								case 0:
-									match_condition.matching_tag_name = std::move(matcher_str);
-									break;
-								case '#':
-									match_condition.matching_id = std::move(matcher_str);
-									break;
-								case '.':
-									match_condition.matching_class = std::move(matcher_str);
-									break;
+								condition match_condition;
+
+								switch(state)
+								{
+									case 0:
+										match_condition.matching_tag_name = std::move(matcher_str);
+										break;
+									case '#':
+										match_condition.matching_id = std::move(matcher_str);
+										break;
+									case '.':
+										match_condition.matching_class = std::move(matcher_str);
+										break;
+								}
+
+								matcher.m_conditions.push_back(match_condition);
+
 							}
-
-							matcher.m_conditions.push_back(match_condition);
-
 							state = c;
 
 							if (state == 0)
