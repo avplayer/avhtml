@@ -39,8 +39,31 @@ static std::string _get_string(GetChar&& getc, GetEscape&& get_escape, char quot
 		return ret;
 }
 
+/*
+ * matcher 是分代的
+ * matcher 会先执行一次匹配, 然后再从上一次执行的结果里执行匹配
+ *
+ * 比如对于 "div p" 这样的选择器, 是先匹配 div , 然后在结果中匹配 p
+ *
+ * 又比如 "div.p p" 先匹配 class=p 的 div 然后在结果中匹配 p
+ *
+ * 也就是说, 空格表示从上一次的结果里匹配.
+ * 也就是说匹配的代用空格隔开.
+ *
+ * 同代的匹配条件里, 是属于 and 关系, 要同时满足
+ * 比如 div.p 是同代的 2 个条件. 需要同时满足
+ */
 void html::selector::build_matchers()
 {
+	selector_matcher matcher;
+
+	if (m_select_string == "*")
+	{
+		matcher.all_match = true;
+		// 所有的类型
+		m_matchers.push_back(matcher);
+		return;
+	}
 	// 从 选择字符构建匹配链
 	auto str_iterator = m_select_string.begin();
 
@@ -65,38 +88,18 @@ void html::selector::build_matchers()
 
 	std::string matcher_str;
 
+
 	char c;
 
 	do
 	{
 		c = getc();
-
 #	define METACHAR  0 : case ' ': case '.' : case '#' : case ':': case '['
 		switch(state)
 		{
 			case 0:
-				switch(c)
-				{
-					case '*':
-					{
-						selector_matcher matcher;
-						matcher.all_match = true;
-						// 所有的类型
-						m_matchers.push_back(matcher);
-					}
-					break;
-					case METACHAR:
-						state = c;
-						break;
-					default:
-						state = ' ';
-						matcher_str += c;
-						break;
-				}
-				break;
 			case '#':
 			case '.':
-			case ' ':
 				switch(c)
 				{
 					case '\\':
@@ -104,27 +107,40 @@ void html::selector::build_matchers()
 						break;
 					case METACHAR:
 						{
-							selector_matcher matcher;
+							condition match_condition;
+
 							switch(state)
 							{
-								case ' ':
-									matcher.matching_tag_name = std::move(matcher_str);
+								case 0:
+									match_condition.matching_tag_name = std::move(matcher_str);
 									break;
 								case '#':
-									matcher.matching_id = std::move(matcher_str);
+									match_condition.matching_id = std::move(matcher_str);
 									break;
 								case '.':
-									matcher.matching_class = std::move(matcher_str);
+									match_condition.matching_class = std::move(matcher_str);
 									break;
 							}
-							m_matchers.push_back(std::move(matcher));
+
+							matcher.m_conditions.push_back(match_condition);
+
 							state = c;
+
+							if (state == 0)
+							{
+								m_matchers.push_back(std::move(matcher));
+							}
 						}
 						break;
 					default:
 						matcher_str += c;
 				}
 				break;
+			case ' ':
+			{
+				m_matchers.push_back(std::move(matcher));
+			}
+			break;
 			case ':':
 			{
 				// 冒号暂时不实现
@@ -164,30 +180,35 @@ html::dom::dom(const std::string& html_page, dom* parent)
 }
 
 html::dom::dom(html::dom&& d)
-    : attributes(std::move(d.attributes))
-    , tag_name(std::move(d.tag_name))
-    , contents(std::move(d.contents))
-    , m_parent(std::move(d.m_parent))
+	: attributes(std::move(d.attributes))
+	, tag_name(std::move(d.tag_name))
+	, content_text(std::move(d.content_text))
+	, m_parent(std::move(d.m_parent))
 	, children(std::move(d.children))
+	, html_parser_feeder(std::move(d.html_parser_feeder))
+	, html_parser_feeder_inialized(std::move(d.html_parser_feeder_inialized))
 {
 }
 
 html::dom::dom(const html::dom& d)
-    : attributes(d.attributes)
-    , tag_name(d.tag_name)
-    , contents(d.contents)
-    , m_parent(d.m_parent)
+	: attributes(d.attributes)
+	, tag_name(d.tag_name)
+	, content_text(d.content_text)
+	, m_parent(d.m_parent)
 	, children(d.children)
+//	, html_parser_feeder(nullptr)
+	, html_parser_feeder_inialized(false)
 {
 }
 
 html::dom& html::dom::operator=(const html::dom& d)
 {
-    attributes = d.attributes;
-    tag_name = d.tag_name;
-    contents = d.contents;
-    m_parent = d.m_parent;
+	attributes = d.attributes;
+	tag_name = d.tag_name;
+	content_text = d.content_text;
+	m_parent = d.m_parent;
 	children = d.children;
+	html_parser_feeder_inialized = false;
 	return *this;
 }
 
@@ -213,10 +234,9 @@ void html::dom::dom_walk(html::dom_ptr d, Handler handler)
 			if (c->tag_name != "<!--")
 				dom_walk(c, handler);
 		}
-
 }
 
-bool html::selector::selector_matcher::operator()(const html::dom& d) const
+bool html::selector::condition::operator()(const html::dom& d) const
 {
 	if (!matching_tag_name.empty())
 	{
@@ -239,7 +259,26 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 		}
 	}
 
-	return all_match;
+	return false;
+}
+
+bool html::selector::selector_matcher::operator()(const html::dom& d) const
+{
+	if (this->all_match)
+		return true;
+
+	bool all_match = false;
+
+	for (auto& c : m_conditions)
+	{
+		if(c(d))
+		{
+			continue;
+		}
+		return false;
+	}
+
+	return true;
 }
 
 html::dom html::dom::operator[](const selector& selector_)
@@ -282,8 +321,7 @@ std::string html::dom::to_plain_text() const
 
 	if (tag_name != "script" && tag_name != "<!--")
 	{
-		for (auto & c : contents)
-			ret += c;
+		ret += content_text;
 
 		for ( auto & c : children)
 		{
@@ -349,7 +387,11 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							pre_state = state;
 							state = 1;
 							if (!content.empty())
-								current_ptr->contents.push_back(std::move(content));
+							{
+								auto content_node = std::make_shared<dom>(current_ptr);
+								content_node->content_text = std::move(content);
+								current_ptr->children.push_back(std::move(content_node));
+							}
 							ignore_blank = (tag != "script");
 						}
 					}
@@ -666,7 +708,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						state = comment_stack.empty()? 0 : 12;
 						dom_ptr comment_node = std::make_shared<dom>(current_ptr);
 						comment_node->tag_name = "<!--";
-						comment_node->contents.push_back(std::move(content));
+						comment_node->content_text = std::move(content);
 						current_ptr->children.push_back(comment_node);
 					}break;
 					default:

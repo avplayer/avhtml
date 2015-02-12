@@ -37,16 +37,22 @@ namespace html{
 		friend class dom;
 
 	protected:
-		struct selector_matcher{
-			bool operator()(const dom&) const;
-
-		private:
-			bool all_match = false;
+		struct condition
+		{
 			std::string matching_tag_name;
 			std::string matching_id;
 			std::string matching_class;
 			std::string matching_name;
 			std::string matching_index;
+			bool operator()(const dom&) const;
+		};
+
+		struct selector_matcher{
+			bool operator()(const dom&) const;
+
+		private:
+			bool all_match = false;
+			std::vector<condition> m_conditions;
 
 			friend class selector;
 		};
@@ -106,7 +112,7 @@ namespace html{
 		std::map<std::string, std::string> attributes;
 		std::string tag_name;
 
-		std::vector<std::string> contents;
+		std::string content_text;
 
 		std::vector<dom_ptr> children;
 		dom* m_parent;
