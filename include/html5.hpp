@@ -117,6 +117,10 @@ namespace html{
 		bool html_parser_feeder_inialized = false;
 
 	protected:
+
+		void to_html(std::ostream*, int deep) const;
+
+
 		std::map<std::string, std::string> attributes;
 		std::string tag_name;
 

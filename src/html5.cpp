@@ -422,36 +422,58 @@ std::string html::dom::to_plain_text() const
 
 	return ret;
 }
-
-std::string html::dom::to_html() const
+void html::dom::to_html(std::ostream* out, int deep) const
 {
-	std::stringstream ret;
-
 	if (!tag_name.empty())
 	{
-		ret << "<" << tag_name;
+		for (auto i = 0; i < deep; i++)
+			*out << ' ';
+
+		if (tag_name!="<!--")
+			*out << "<" << tag_name;
+		else{
+			*out << tag_name;
+		}
 
 		if (!attributes.empty())
 		{
 			for (auto a : attributes)
 			{
-				ret << ' ';
-				ret << a.first << "=" << a.second;
+				*out << ' ';
+				*out << a.first << "=" << a.second;
 			}
 		}
-		ret << ">";
+		if (tag_name!="<!--")
+			*out << ">\n";
+		else{
+			*out << content_text;
+			*out << "-->\n";
+		}
+	}else
+	{
+		*out << content_text;
 	}
-
-	ret << content_text;
 
 	for ( auto & c : children)
 	{
-		ret << c->to_html();
+		c->to_html(out, deep + 1);
 	}
 
 	if (!tag_name.empty())
-		ret << "</" << tag_name << ">";
+	{
+		if (tag_name!="<!--")
+		{
+			for (auto i = 0; i < deep; i++)
+				*out << ' ';
+			*out << "</" << tag_name << ">\n";
+		}
+	}
+}
 
+std::string html::dom::to_html() const
+{
+	std::stringstream ret;
+	to_html(&ret, 0);
 	return ret.str();
 }
 
