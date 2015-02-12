@@ -17,3 +17,23 @@ avhtml 支持边输入 html 页面边解析. 也就是页面不需要完全下�
 avhtml 支持 jquery 一样的选择器来选择 DOM 里的节点. 极大的方便了大家提取 html 页面里的信息.
 
 要使用选择器, 使用 [] 下标即可.
+
+如要返回页面的标题, 如下面的例子
+
+<pre style='color:#1f1c1b;background-color:#ffffff;'>
+<span style='color:#0057ae;'>void</span> pp()
+{
+	html::dom page;
+
+	page.append_partial_html(<span style='color:#bf0303;'>&quot;&lt;html&gt;&lt;head&gt;&quot;</span>);
+	page.append_partial_html(<span style='color:#bf0303;'>&quot;&lt;title&gt;hello world&lt;/title&quot;</span>);
+	page.append_partial_html(<span style='color:#bf0303;'>&quot;&gt;&lt;/head&gt;&lt;/html&gt;&quot;</span>);
+
+	assert(page[<span style='color:#bf0303;'>&quot;title&quot;</span>] == <span style='color:#bf0303;'>&quot;hello world&quot;</span> );
+}</pre>
+
+
+使用 page\["title"\] 就可以返回了, 就好像 jquery 的选择符.
+返回的结果还是 dom 类型. 可以使用 to_plain_text() 转为纯文本格式.
+
+

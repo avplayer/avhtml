@@ -25,3 +25,15 @@ int main(int argc, char *argv[])
 		std::cout << cu_page[argv[2]].to_plain_text() << std::endl;
 	}
 }
+
+
+void pp()
+{
+	html::dom page;
+
+	page.append_partial_html("<html><head>");
+	page.append_partial_html("<title>hello world</title");
+	page.append_partial_html("></head></html>");
+
+	assert(page["title"] == "hello world" );
+}
