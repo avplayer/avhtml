@@ -384,20 +384,20 @@ static inline std::string get_char_set( std::string type,  const std::string & h
 	return "utf8";
 }
 
-std::string html::dom::charset() const
+std::string html::dom::charset(const std::string& default_charset) const
 {
 	std::string cset;
 	auto charset_dom = (*this)["meta [http-equiv][content]"];
 
 	for (auto & c : charset_dom.children)
 	{
-		dom_walk(c, [this, &cset](html::dom_ptr i)
+		dom_walk(c, [this, &cset, &default_charset](html::dom_ptr i)
 		{
 			if (strcmp_ignore_case(i->attributes["http-equiv"], "content-type"))
 			{
 				auto content= i->attributes["content"];
 
-				cset = get_char_set(content, "charset=utf8");
+				cset = get_char_set(content, default_charset);
 				return false;
 			}
 			return true;

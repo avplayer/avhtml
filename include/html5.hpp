@@ -109,7 +109,7 @@ namespace html{
 		std::string to_plain_text() const;
 
 		// return charset of the page if page contain meta http-equiv= content="charset="
-		std::string charset() const;
+		std::string charset(const std::string& default_charset = "UTF-8" ) const;
 
 	private:
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
