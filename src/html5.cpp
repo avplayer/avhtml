@@ -356,8 +356,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							new_dom->tag_name = std::move(tag);
 
 							current_ptr->children.push_back(new_dom);
-							if(new_dom->tag_name[0] != '!')
-								current_ptr = new_dom.get();
+							current_ptr = new_dom.get();
 						}
 					}
 					break;
@@ -459,6 +458,10 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						current_ptr->attributes[k] = "";
 						k.clear();
 						v.clear();
+						if ( current_ptr->tag_name[0] == '!')
+						{
+							current_ptr = current_ptr->m_parent;
+						}
 					}
 					break;
 					default:
@@ -486,7 +489,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				}
 			}
 			break;
-			case 5:
+			case 5: // 解析 </xxx>
 			{
 				switch(c)
 				{
