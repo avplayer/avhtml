@@ -511,6 +511,18 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						k.clear();
 					}
 					break;
+					case '>':
+					{
+						pre_state = state;
+						state = 0;
+						current_ptr->attributes[k] = "";
+						k.clear();
+						v.clear();
+						if ( current_ptr->tag_name[0] == '!')
+						{
+							current_ptr = current_ptr->m_parent;
+						}
+					}break;
 					default:
 						v += c;
 				}
