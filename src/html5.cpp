@@ -357,31 +357,22 @@ html::dom html::dom::operator[](const selector& selector_) const
 	return matched_dom;
 }
 
-static inline std::string get_char_set( std::string type,  const std::string & header )
+static inline std::string get_char_set( std::string type,  const std::string & default_charset )
 {
 	boost::cmatch what;
 	// 首先是 text/html; charset=XXX
 	boost::regex ex( "charset=([a-zA-Z0-9\\-_]+)" );
-	boost::regex ex2( "<meta charset=[\"\']?([a-zA-Z0-9\\-_]+)[\"\']?" );
 
 	if( boost::regex_search( type.c_str(), what, ex ) )
 	{
 		return what[1];
 	}
-	else if( boost::regex_search( type.c_str(), what, ex2 ) )
-	{
-		return what[1];
-	}
-	else if( boost::regex_search( header.c_str(), what, ex ) )
-	{
-		return what[1];
-	}
-	else if( boost::regex_search( header.c_str(), what, ex2 ) )
+	else if( boost::regex_search( default_charset.c_str(), what, ex ) )
 	{
 		return what[1];
 	}
 
-	return "utf8";
+	return default_charset;
 }
 
 std::string html::dom::charset(const std::string& default_charset) const
