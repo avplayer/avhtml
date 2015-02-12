@@ -356,8 +356,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							new_dom->tag_name = std::move(tag);
 
 							current_ptr->children.push_back(new_dom);
-
-							current_ptr = new_dom.get();
+							if(new_dom->tag_name[0] != '!')
+								current_ptr = new_dom.get();
 						}
 					}
 					break;
