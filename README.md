@@ -20,17 +20,18 @@ avhtml 支持 jquery 一样的选择器来选择 DOM 里的节点. 极大的方�
 
 如要返回页面的标题, 如下面的例子
 
-<pre style='color:#1f1c1b;background-color:#ffffff;'>
-<span style='color:#0057ae;'>void</span> test()
+<pre>
+void test()
 {
 	html::dom page;
 
-	page.append_partial_html(<span style='color:#bf0303;'>&quot;&lt;html&gt;&lt;head&gt;&quot;</span>);
-	page.append_partial_html(<span style='color:#bf0303;'>&quot;&lt;title&gt;hello world&lt;/title&quot;</span>);
-	page.append_partial_html(<span style='color:#bf0303;'>&quot;&gt;&lt;/head&gt;&lt;/html&gt;&quot;</span>);
+	page.append_partial_html(&quot;&lt;html&gt;&lt;head&gt;&quot;);
+	page.append_partial_html(&quot;&lt;title&gt;hello world&lt;/title&quot;);
+	page.append_partial_html(&quot;&gt;&lt;/head&gt;&lt;/html&gt;&quot;);
 
-	assert(page[<span style='color:#bf0303;'>&quot;title&quot;</span>] == <span style='color:#bf0303;'>&quot;hello world&quot;</span> );
-}</pre>
+	assert(page[&quot;title&quot;].to_plain_text() == &quot;hello world&quot;);
+}
+</pre>
 
 
 使用 page\["title"\] 就可以返回了, 就好像 jquery 的选择符.
