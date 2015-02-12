@@ -13,6 +13,32 @@ html::selector::selector(std::string&&s)
 	build_matchers();
 }
 
+template<class GetChar, class GetEscape, class StateEscaper>
+static std::string _get_string(GetChar&& getc, GetEscape&& get_escape, char quote_char, StateEscaper&& state_escaper)
+{
+		std::string ret;
+
+		auto c = getc();
+
+		while ( (c != quote_char) && (c!= '\n'))
+		{
+			if ( c == '\'' )
+			{
+				c += get_escape();
+			}else
+			{
+				ret += c;
+			}
+			c = getc();
+		}
+
+		if (c == '\n')
+		{
+			state_escaper();
+		}
+		return ret;
+}
+
 void html::selector::build_matchers()
 {
 	// 从 选择字符构建匹配链
@@ -20,31 +46,112 @@ void html::selector::build_matchers()
 
 	int state = 0;
 
-	while(str_iterator != m_select_string.end())
+	auto getc = [this, &str_iterator]() -> char {
+		if (str_iterator != m_select_string.end())
+			return *str_iterator++;
+		return 0;
+	};
+
+	auto get_escape = [&getc]() -> char
 	{
+		return getc();
+	};
+
+	auto get_string = [&getc, &get_escape, &state](char quote_char){
+		return _get_string(getc, get_escape, quote_char, [&state](){
+			state = 0;
+		});
+	};
+
+	std::string matcher_str;
+
+	char c;
+
+	do
+	{
+		c = getc();
+
+#	define METACHAR  0 : case ' ': case '.' : case '#' : case ':': case '['
 		switch(state)
 		{
 			case 0:
-			switch(*str_iterator)
-			{
-				case '*':
+				switch(c)
 				{
-					// 所有的类型
-					m_matchers.emplace_back(selector_matcher());
+					case '*':
+					{
+						// 所有的类型
+						m_matchers.emplace_back(selector_matcher());
+					}
+					break;
+					case METACHAR:
+						state = c;
+						break;
+					default:
+						state = ' ';
+						matcher_str += c;
+						break;
+				}
+				break;
+			case '#':
+			case '.':
+			case ' ':
+				switch(c)
+				{
+					case '\\':
+						matcher_str += get_escape();
+						break;
+					case METACHAR:
+						{
+							selector_matcher matcher;
+							switch(state)
+							{
+								case ' ':
+									matcher.matching_tag_name = std::move(matcher_str);
+									break;
+								case '#':
+									matcher.matching_id = std::move(matcher_str);
+									break;
+								case '.':
+									matcher.matching_class = std::move(matcher_str);
+									break;
+							}
+							m_matchers.push_back(std::move(matcher));
+							state = c;
+						}
+						break;
+					default:
+						matcher_str += c;
+				}
+				break;
+			case ':':
+			{
+				// 冒号暂时不实现
+				switch(c)
+				{
+					case METACHAR:
+						state = c;
+						break;
 				}
 
+			}break;
+			case '[':// 暂时不实现
+			{
+				switch(c)
+				{
+					case METACHAR:
+						state = c;
+						break;
+				}
 			}
-
-
+			break;
 		}
+#	undef METACHAR
 
-	}
-
+	}while(c);
 }
 
 html::dom::dom(dom* parent) noexcept
-    : html_parser_feeder(std::bind(&dom::html_parser, this, std::placeholders::_1))
-	, m_parent(parent)
+	: m_parent(parent)
 {
 }
 
@@ -54,8 +161,41 @@ html::dom::dom(const std::string& html_page, dom* parent)
 	append_partial_html(html_page);
 }
 
+html::dom::dom(html::dom&& d)
+    : attributes(std::move(d.attributes))
+    , tag_name(std::move(d.tag_name))
+    , contents(std::move(d.contents))
+    , m_parent(std::move(d.m_parent))
+	, children(std::move(d.children))
+{
+}
+
+html::dom::dom(const html::dom& d)
+    : attributes(d.attributes)
+    , tag_name(d.tag_name)
+    , contents(d.contents)
+    , m_parent(d.m_parent)
+	, children(d.children)
+{
+}
+
+html::dom& html::dom::operator=(const html::dom& d)
+{
+    attributes = d.attributes;
+    tag_name = d.tag_name;
+    contents = d.contents;
+    m_parent = d.m_parent;
+	children = d.children;
+}
+
 bool html::dom::append_partial_html(const std::string& str)
 {
+	if (!html_parser_feeder_inialized)
+	{
+		html_parser_feeder = boost::coroutines::asymmetric_coroutine<char>::push_type(std::bind(&dom::html_parser, this, std::placeholders::_1));
+		html_parser_feeder_inialized = true;
+	}
+
 	for(auto c: str)
 		html_parser_feeder(c);
 }
@@ -64,7 +204,7 @@ template<class Handler>
 void html::dom::dom_walk(html::dom_ptr d, Handler handler)
 {
 	if(handler(d))
-		for( auto & c : d->children)
+		for (auto & c : d->children)
 			dom_walk(c, handler);
 }
 
@@ -74,37 +214,49 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 	{
 		return d.tag_name == matching_tag_name;
 	}
+	if (!matching_id.empty())
+	{
+		auto it = d.attributes.find("id");
+		if ( it != d.attributes.end())
+		{
+			return it->second == matching_id;
+		}
+	}
 	return false;
 }
 
 html::dom html::dom::operator[](const selector& selector_)
 {
-	html::dom ret_dom;
+	html::dom selectee_dom(*this);
+	html::dom matched_dom;
 
-	for( auto & c : children)
+	for (auto & matcher : selector_)
 	{
-		dom_walk(c, [this, &ret_dom, selector_](html::dom_ptr i)
+		for( auto & c : selectee_dom.children)
 		{
-			bool no_match = true;
-
-			for (auto & matcher : selector_)
+			dom_walk(c, [this, &matcher, &matched_dom, selector_](html::dom_ptr i)
 			{
+				bool no_match = true;
+
+				dom* _this_dom = i.get();
+
+				std::string id = i->attributes["id"];
+
 				if (matcher(*i))
 				{
 					no_match = false;
-					continue;
 				}
 				no_match = true;
-				break;
-			}
 
-			if (!no_match)
-				ret_dom.children.push_back(i);
-			return no_match;
-		});
+				if (!no_match)
+					matched_dom.children.push_back(i);
+				return no_match;
+			});
+		}
+		selectee_dom = matched_dom;
 	}
 
-	return ret_dom;
+	return matched_dom;
 }
 
 std::string html::dom::to_plain_text()
@@ -134,32 +286,11 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 	};
 
 	auto get_string = [&getc, &get_escape, &pre_state, &state](char quote_char){
-
-		std::string ret;
-
-		auto c = getc();
-
-		while ( (c != quote_char) && (c!= '\n'))
-		{
-			if ( c == '\'' )
-			{
-				c += get_escape();
-			}else
-			{
-				ret += c;
-			}
-			c = getc();
-		}
-
-		if (c == '\n')
-		{
+		return _get_string(getc, get_escape, quote_char, [&pre_state, &state](){
 			pre_state = state;
 			state = 0;
-		}
-
-		return ret;
+		});
 	};
-
 
 	std::string tag; //当前处理的 tag
 	std::string content; // 当前 tag 下的内容

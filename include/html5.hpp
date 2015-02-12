@@ -42,6 +42,8 @@ namespace html{
 			std::string matching_class;
 			std::string matching_name;
 			std::string matching_index;
+
+			friend class selector;
 		};
 		typedef std::vector<selector_matcher>::const_iterator selector_matcher_iterator;
 
@@ -63,7 +65,6 @@ namespace html{
 
 	class dom
 	{
-
 	public:
 
 		// 默认构造.
@@ -71,6 +72,10 @@ namespace html{
 
 		// 从html构造 DOM.
 		explicit dom(const std::string& html_page, dom* parent = nullptr);
+
+		explicit dom(const dom& d);
+		dom(dom&& d);
+		dom& operator = (const dom& d);
 
 	public:
 		// 喂入一html片段.
@@ -87,6 +92,7 @@ namespace html{
 
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
 		boost::coroutines::asymmetric_coroutine<char>::push_type html_parser_feeder;
+		bool html_parser_feeder_inialized = false;
 
 	protected:
 		dom operator()(selector::selector_matcher_iterator first, selector::selector_matcher_iterator last);
