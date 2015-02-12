@@ -87,6 +87,7 @@ namespace html{
 		explicit dom(const dom& d);
 		dom(dom&& d);
 		dom& operator = (const dom& d);
+		dom& operator = (dom&& d);
 
 	public:
 		// 喂入一html片段.
@@ -94,6 +95,13 @@ namespace html{
 
 	public:
 		dom operator[](const selector&);
+		void clear(){
+			attributes.clear();
+			tag_name.clear();
+			content_text.clear();
+			children.clear();
+			m_parent = nullptr;
+		}
 
 		std::string to_html() const;
 

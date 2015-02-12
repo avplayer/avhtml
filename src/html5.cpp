@@ -129,6 +129,9 @@ void html::selector::build_matchers()
 							}
 							state = c;
 
+							if ( c == ' ')
+								state = 0;
+
 							if (state == 0)
 							{
 								m_matchers.push_back(std::move(matcher));
@@ -215,6 +218,17 @@ html::dom& html::dom::operator=(const html::dom& d)
 	return *this;
 }
 
+html::dom& html::dom::operator=(html::dom&& d)
+{
+	attributes = std::move(d.attributes);
+	tag_name = std::move(d.tag_name);
+	content_text = std::move(d.content_text);
+	m_parent = std::move(d.m_parent);
+	children = std::move(d.children);
+	html_parser_feeder_inialized = false;
+	return *this;
+}
+
 bool html::dom::append_partial_html(const std::string& str)
 {
 	if (!html_parser_feeder_inialized)
@@ -286,11 +300,13 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 
 html::dom html::dom::operator[](const selector& selector_)
 {
-	html::dom selectee_dom(*this);
-	html::dom matched_dom;
+	html::dom selectee_dom;
+	html::dom matched_dom(*this);
 
 	for (auto & matcher : selector_)
 	{
+		selectee_dom = std::move(matched_dom);
+
 		for( auto & c : selectee_dom.children)
 		{
 			dom_walk(c, [this, &matcher, &matched_dom, selector_](html::dom_ptr i)
@@ -312,7 +328,6 @@ html::dom html::dom::operator[](const selector& selector_)
 				return no_match;
 			});
 		}
-		selectee_dom = std::move(matched_dom);
 	}
 
 	return matched_dom;
