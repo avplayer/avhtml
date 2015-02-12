@@ -33,7 +33,6 @@ namespace html{
 		friend class dom;
 
 	protected:
-
 		struct selector_matcher{
 			bool operator()(const dom&) const;
 
@@ -44,12 +43,13 @@ namespace html{
 			std::string matching_name;
 			std::string matching_index;
 		};
+		typedef std::vector<selector_matcher>::const_iterator selector_matcher_iterator;
 
-		std::vector<selector_matcher>::const_iterator begin() const {
+		selector_matcher_iterator begin() const {
 			return m_matchers.begin();
 		}
 
-		std::vector<selector_matcher>::const_iterator end() const {
+		selector_matcher_iterator end() const {
 			return m_matchers.end();
 		}
 
@@ -87,6 +87,9 @@ namespace html{
 
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
 		boost::coroutines::asymmetric_coroutine<char>::push_type html_parser_feeder;
+
+	protected:
+		dom operator()(selector::selector_matcher_iterator first, selector::selector_matcher_iterator last);
 
 	protected:
 		std::map<std::string, std::string> attributes;
