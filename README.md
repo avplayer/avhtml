@@ -21,7 +21,7 @@ avhtml 支持 jquery 一样的选择器来选择 DOM 里的节点. 极大的方�
 如要返回页面的标题, 如下面的例子
 
 <pre style='color:#1f1c1b;background-color:#ffffff;'>
-<span style='color:#0057ae;'>void</span> pp()
+<span style='color:#0057ae;'>void</span> test()
 {
 	html::dom page;
 

@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 }
 
 
-void pp()
+void test()
 {
 	html::dom page;
 
