@@ -247,8 +247,8 @@ html::dom html::dom::operator[](const selector& selector_)
 				if (matcher(*i))
 				{
 					no_match = false;
-				}
-				no_match = true;
+				}else
+					no_match = true;
 
 				if (!no_match)
 					matched_dom.children.push_back(i);
@@ -303,6 +303,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 	char c;
 
 	bool ignore_blank = true;
+	std::vector<int> comment_stack;
 
 	while(html_page_source) // EOF 检测
 	{
@@ -357,8 +358,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 							new_dom->tag_name = std::move(tag);
 
 							current_ptr->children.push_back(new_dom);
-
-							current_ptr = new_dom.get();
+							if(new_dom->tag_name[0] != '!')
+								current_ptr = new_dom.get();
 						}
 					}
 					break;
@@ -370,13 +371,17 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 						dom_ptr new_dom = std::make_shared<dom>(current_ptr);
 						new_dom->tag_name = std::move(tag);
 						current_ptr->children.push_back(new_dom);
-						current_ptr = new_dom.get();
+						if(new_dom->tag_name[0] != '!')
+							current_ptr = new_dom.get();
 					}
 					break;
 					case '/':
 						pre_state = state;
 						state = 5;
 					break;
+					case '!':
+						pre_state = state;
+						state = 10;
 					// 为 tag 赋值.
 					default:
 						tag += c;
@@ -533,6 +538,97 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				}
 				break;
 			}
+
+			case 10:
+			{
+				// 遇到了 <! 这种,
+				switch(c)
+				{
+					case '-':
+						tag += c;
+						state = 11;
+						break;
+					default:
+						tag += c;
+						state = pre_state;
+				}
+			}break;
+			case 11:
+			{
+				// 遇到了 <!- 这种,
+				switch(c)
+				{
+					case '-':
+						state = 12;
+						comment_stack.push_back(pre_state);
+						tag.clear();
+						break;
+					default:
+						tag += c;
+						state = pre_state;
+				}
+
+			}break;
+			case 12:
+			{
+				// 遇到了 <!-- 这种,
+				// 要做的就是一直忽略直到  -->
+				switch(c)
+				{
+					case '<':
+					{
+						c = getc();
+						if ( c == '!')
+						{
+							pre_state = state;
+							state = 10;
+						}else{
+							content += '<';
+							content += c;
+						}
+					}break;
+					case '-':
+					{
+						pre_state = state;
+						state = 13;
+					}
+					default:
+						content += c;
+				}
+			}break;
+			case 13: // 遇到 -->
+			{
+				switch(c)
+				{
+					case '-':
+					{
+						state = 14;
+					}break;
+					default:
+						content += c;
+						state = pre_state;
+				}
+			}break;
+			case 14: // 遇到 -->
+			{
+				switch(c)
+				{
+					case '>':
+					{
+						if (pre_state == 12)
+							content.pop_back();
+						comment_stack.pop_back();
+						state = comment_stack.empty()? 0 : 12;
+						dom_ptr comment_node = std::make_shared<dom>(current_ptr);
+						comment_node->tag_name = "<!--";
+						comment_node->contents.push_back(std::move(content));
+						current_ptr->children.push_back(comment_node);
+					}break;
+					default:
+						content += c;
+						state = pre_state;
+				}
+			}break;
 		}
 	}
 }
