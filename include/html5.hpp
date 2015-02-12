@@ -41,6 +41,7 @@ namespace html{
 			bool operator()(const dom&) const;
 
 		private:
+			bool all_match = false;
 			std::string matching_tag_name;
 			std::string matching_id;
 			std::string matching_class;
@@ -88,9 +89,9 @@ namespace html{
 	public:
 		dom operator[](const selector&);
 
-		std::string to_html();
+		std::string to_html() const;
 
-		std::string to_plain_text();
+		std::string to_plain_text() const;
 
 	private:
 

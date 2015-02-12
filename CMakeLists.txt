@@ -20,3 +20,7 @@ target_link_libraries(html5 ${Boost_LIBRARIES})
 add_executable(html5test test/test.cpp)
 
 target_link_libraries(html5test html5)
+
+enable_testing()
+
+add_test(NAME html5test COMMAND ${CMAKE_BINARY_DIR}/html5test test.html title WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)

@@ -79,8 +79,10 @@ void html::selector::build_matchers()
 				{
 					case '*':
 					{
+						selector_matcher matcher;
+						matcher.all_match = true;
 						// 所有的类型
-						m_matchers.emplace_back(selector_matcher());
+						m_matchers.push_back(matcher);
 					}
 					break;
 					case METACHAR:
@@ -207,7 +209,11 @@ void html::dom::dom_walk(html::dom_ptr d, Handler handler)
 {
 	if(handler(d))
 		for (auto & c : d->children)
-			dom_walk(c, handler);
+		{
+			if (c->tag_name != "<!--")
+				dom_walk(c, handler);
+		}
+
 }
 
 bool html::selector::selector_matcher::operator()(const html::dom& d) const
@@ -224,7 +230,16 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 			return it->second == matching_id;
 		}
 	}
-	return false;
+	if (!matching_class.empty())
+	{
+		auto it = d.attributes.find("class");
+		if ( it != d.attributes.end())
+		{
+			return it->second == matching_class;
+		}
+	}
+
+	return all_match;
 }
 
 html::dom html::dom::operator[](const selector& selector_)
@@ -255,17 +270,27 @@ html::dom html::dom::operator[](const selector& selector_)
 				return no_match;
 			});
 		}
-		selectee_dom = matched_dom;
+		selectee_dom = std::move(matched_dom);
 	}
 
 	return matched_dom;
 }
 
-std::string html::dom::to_plain_text()
+std::string html::dom::to_plain_text() const
 {
-
-
 	std::string ret;
+
+	if (tag_name != "script" && tag_name != "<!--")
+	{
+		for (auto & c : contents)
+			ret += c;
+
+		for ( auto & c : children)
+		{
+			ret += c->to_plain_text();
+		}
+	}
+
 	return ret;
 }
 
@@ -497,9 +522,9 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 				{
 					case '>':
 					{
-
 						if(!tag.empty())
 						{
+							state = 0;
 							// 来, 关闭 tag 了
 							// 注意, HTML 里, tag 可以越级关闭
 
@@ -512,12 +537,15 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 								_current_ptr = _current_ptr->m_parent;
 							}
 
-							tag.clear();
 							if (!_current_ptr)
 							{
 								// 找不到对应的 tag 要咋关闭... 忽略之
+								tag.clear();
+
 								break;
 							}
+
+							tag.clear();
 
 							current_ptr = _current_ptr;
 
@@ -528,6 +556,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 								current_ptr = current_ptr->m_parent;
 							else
 								current_ptr = this;
+						}else
+						{
 							state = 0;
 						}
 					}break;

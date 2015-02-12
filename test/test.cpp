@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
 		html::dom cu_page;
 		std::ifstream ifs(argv[1]);
 
+		ifs >> std::noskipws;
+
 		std::string test_page((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 		cu_page.append_partial_html(test_page);
 		std::cout << cu_page[argv[2]].to_plain_text() << std::endl;
