@@ -341,10 +341,6 @@ html::dom html::dom::operator[](const selector& selector_) const
 			{
 				bool no_match = true;
 
-				dom* _this_dom = i.get();
-
-				std::string id = i->attributes["id"];
-
 				if (matcher(*i))
 				{
 					no_match = false;
@@ -427,6 +423,37 @@ std::string html::dom::to_plain_text() const
 	return ret;
 }
 
+std::string html::dom::to_html() const
+{
+	std::stringstream ret;
+
+	if (!tag_name.empty())
+	{
+		ret << "<" << tag_name;
+
+		if (!attributes.empty())
+		{
+			for (auto a : attributes)
+			{
+				ret << ' ';
+				ret << a.first << "=" << a.second;
+			}
+		}
+		ret << ">";
+	}
+
+	ret << content_text;
+
+	for ( auto & c : children)
+	{
+		ret << c->to_html();
+	}
+
+	if (!tag_name.empty())
+		ret << "</" << tag_name << ">";
+
+	return ret.str();
+}
 
 #define CASE_BLANK case ' ': case '\r': case '\n': case '\t'
 

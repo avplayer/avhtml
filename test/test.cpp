@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
 		auto charset = cu_page.charset();
 
-		auto dom_text = cu_page[argv[2]].to_plain_text();
+		auto dom_text = cu_page[argv[2]].to_html();
 
 		std::cout << boost::locale::conv::between(dom_text, "UTF-8", charset) << std::endl;
 	}
