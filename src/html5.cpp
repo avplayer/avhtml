@@ -422,6 +422,7 @@ std::string html::dom::to_plain_text() const
 
 	return ret;
 }
+
 void html::dom::to_html(std::ostream* out, int deep) const
 {
 	if (!tag_name.empty())
@@ -451,7 +452,9 @@ void html::dom::to_html(std::ostream* out, int deep) const
 		}
 	}else
 	{
-		*out << content_text;
+		for (auto i = 0; i < deep +1; i++)
+			*out << ' ';
+		*out << content_text << "\n";
 	}
 
 	for ( auto & c : children)
@@ -473,7 +476,7 @@ void html::dom::to_html(std::ostream* out, int deep) const
 std::string html::dom::to_html() const
 {
 	std::stringstream ret;
-	to_html(&ret, 0);
+	to_html(&ret, -1);
 	return ret.str();
 }
 
