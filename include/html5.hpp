@@ -111,6 +111,22 @@ namespace html{
 		// return charset of the page if page contain meta http-equiv= content="charset="
 		std::string charset(const std::string& default_charset = "UTF-8" ) const;
 
+		std::vector<dom_ptr> get_children(){
+			return children;
+		}
+
+		std::string get_attr(const std::string& attr)
+		{
+			auto it = attributes.find(attr);
+
+			if (it==attributes.end())
+			{
+				return "";
+			}
+
+			return it->second;
+		}
+
 	private:
 		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
 		boost::coroutines::asymmetric_coroutine<char>::push_type html_parser_feeder;
