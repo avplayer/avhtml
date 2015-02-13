@@ -505,6 +505,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 
 	std::vector<int> comment_stack;
 
+	bool ignore_blank = false;
+
 	while(html_page_source) // EOF 检测
 	{
 		// 获取一个字符
@@ -533,9 +535,18 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_
 					}
 					break;
 					CASE_BLANK :
-						break;
+					{
+						if (ignore_blank)
+						{
+							break;
+						}else{
+							ignore_blank = true;
+							content += ' ';
+						}
+					}break;
 					default:
 						content += c;
+						ignore_blank = false;
 				}
 			}
 			break;
