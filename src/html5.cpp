@@ -377,24 +377,39 @@ static inline std::string get_char_set( std::string type,  const std::string & d
 
 std::string html::dom::charset(const std::string& default_charset) const
 {
-	std::string cset;
-	auto charset_dom = (*this)["meta [http-equiv][content]"];
+	auto charset_dom = (*this)["meta"];
 
-	for (auto & c : charset_dom.children)
-	{
-		dom_walk(c, [this, &cset, &default_charset](html::dom_ptr i)
+	try {
+		for (auto & c : charset_dom.children)
 		{
-			if (strcmp_ignore_case(i->attributes["http-equiv"], "content-type"))
+			dom_walk(c, [this, &default_charset](html::dom_ptr i)
 			{
-				auto content= i->attributes["content"];
+				if (strcmp_ignore_case(i->get_attr("http-equiv"), "content-type"))
+				{
+					auto content = i->get_attr("content");
 
-				cset = get_char_set(content, default_charset);
-				return false;
-			}
-			return true;
-		});
+					if (!content.empty())
+					{
+						auto cset = get_char_set(content, default_charset);
+
+						throw cset;
+					}
+				}
+
+				if (!i->get_attr("charset").empty())
+				{
+					throw i->get_attr("charset");
+				}
+
+				return true;
+			});
+		}
+	}catch(const std::string& cset)
+	{
+		return cset;
 	}
-	return cset;
+
+	return default_charset;
 }
 
 std::string html::dom::to_plain_text() const
