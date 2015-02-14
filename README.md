@@ -38,6 +38,12 @@ void test()
 
 ## 选择器语法支持列表
 
+|Solution        |   Lines of code  |    Run-time  |
+|----------------|------------------|--------------|
+|C++ RB-tree     |   15             |  235 sec.    |
+|C Hash          |   85             |   36 sec.    |
+
+
 | Selector           | Example                | Desc                              | Support |
 |--------------------|------------------------|-----------------------------------|---------|
 | *                  | page["*"]              | all elements                      | √       |
@@ -54,3 +60,18 @@ void test()
 | [attribute=value]  | page["[href='#']"]     | all tags with empty link          |         |
 | [attribute!=value] | page["[href!='#']"]    | all tags with not empty link      |         |
 | [attribute$=value] | page["[href$='.jpg']"] | all tags with jpg link            |         |
+
+选择器支持组合
+
+比如  "div.class" "div#id1" "div #id1"
+
+注意这里 "div#id1" 和 "div #id1" 的含义是不一样的哦!
+
+"div#id1" 意思是所有 id=id1 的 div 标签, 而 "div #id1" 的意思是所有 div 标签(包括其含的子标签) 里找 id=id1 的标签
+
+比如
+
+<pre style='color:#1f1c1b;background-color:#ffffff;'>
+&lt;div&gt; &lt;p id=&quot;id1&quot;&gt;&lt;/p&gt;&lt;/div&gt; 这样的 html ,  是可以被 &quot;div #id1&quot; 选中的. 返回的就是 那个 p 节点. 而 div#id1 则返回空.</pre>
+
+
