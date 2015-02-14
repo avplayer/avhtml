@@ -128,8 +128,8 @@ namespace html{
 		}
 
 	private:
-		void html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type & html_page_source);
-		boost::coroutines::asymmetric_coroutine<char>::push_type html_parser_feeder;
+		void html_parser(boost::coroutines::asymmetric_coroutine<const std::string*>::pull_type & html_page_source);
+		boost::coroutines::asymmetric_coroutine<const std::string*>::push_type html_parser_feeder;
 		bool html_parser_feeder_inialized = false;
 
 	protected:

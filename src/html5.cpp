@@ -255,12 +255,12 @@ bool html::dom::append_partial_html(const std::string& str)
 {
 	if (!html_parser_feeder_inialized)
 	{
-		html_parser_feeder = boost::coroutines::asymmetric_coroutine<char>::push_type(std::bind(&dom::html_parser, this, std::placeholders::_1));
+		html_parser_feeder = boost::coroutines::asymmetric_coroutine<const std::string*>::push_type(std::bind(&dom::html_parser, this, std::placeholders::_1));
 		html_parser_feeder_inialized = true;
 	}
 
-	for(auto c: str)
-		html_parser_feeder(c);
+//	for(auto c: str)
+	html_parser_feeder(&str);
 	return true;
 }
 
@@ -339,17 +339,12 @@ html::dom html::dom::operator[](const selector& selector_) const
 		{
 			dom_walk(c, [this, &matcher, &matched_dom, selector_](html::dom_ptr i)
 			{
-				bool no_match = true;
-
 				if (matcher(*i))
 				{
-					no_match = false;
-				}else
-					no_match = true;
-
-				if (!no_match)
 					matched_dom.children.push_back(i);
-				return no_match;
+					return false;
+				}
+				return true;
 			});
 		}
 	}
@@ -488,14 +483,29 @@ std::string html::dom::to_html() const
 
 #define CASE_BLANK case ' ': case '\r': case '\n': case '\t'
 
-void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<char>::pull_type& html_page_source)
+void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::string*>::pull_type& html_page_source)
 {
 	int pre_state = 0, state = 0;
 
-	auto getc = [&html_page_source](){
-		auto c = html_page_source.get();
+	const std::string * _cur_str;
+	std::string::const_iterator _cur_str_it;
+
+	_cur_str = html_page_source.get();
+
+	_cur_str_it = _cur_str->begin();
+
+	auto getc = [&_cur_str, &_cur_str_it, &html_page_source](){
+
+		if (_cur_str_it!= _cur_str->end())
+		{
+			return *_cur_str_it++;
+		}
+
 		html_page_source();
-		return c;
+		_cur_str = html_page_source.get();
+		_cur_str_it = _cur_str->begin();
+
+		return *_cur_str_it++;
 	};
 
 	auto get_escape = [&getc]() -> char
