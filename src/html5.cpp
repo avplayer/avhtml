@@ -1,15 +1,19 @@
 
 #include "html5.hpp"
 
+
+
 #include <boost/regex.hpp>
 
-html::selector::selector(const std::string& s)
+template<typename CharType>
+html::basic_selector<CharType>::basic_selector(const std::basic_string<CharType>& s)
 	: m_select_string(s)
 {
 	build_matchers();
 }
 
-html::selector::selector(std::string&&s)
+template<typename CharType>
+html::basic_selector<CharType>::basic_selector(std::basic_string<CharType>&&s)
 	: m_select_string(s)
 {
 	build_matchers();
@@ -22,30 +26,22 @@ static bool strcmp_ignore_case(const std::string& a, const std::string& b)
 	return false;
 }
 
-template<class GetChar, class GetEscape, class StateEscaper>
-static std::string _get_string(GetChar&& getc, GetEscape&& get_escape, char quote_char, StateEscaper&& state_escaper)
+static bool strcmp_ignore_case(const std::wstring& a, const std::wstring& b)
 {
-		std::string ret;
+	if ( a.size() == b.size())
+		return memcmp(a.c_str(), b.c_str(), a.size() * sizeof(wchar_t)) == 0;
+	return false;
+}
 
-		auto c = getc();
+static bool strcmp_ignore_case(const std::wstring& a, const char b[])
+{
+	for ( int i ; i < a.size() ; i ++)
+	{
+		if (b[i] != a[i])
+			return false;
+	}
 
-		while ( (c != quote_char) && (c!= '\n'))
-		{
-			if ( c == '\'' )
-			{
-				c += get_escape();
-			}else
-			{
-				ret += c;
-			}
-			c = getc();
-		}
-
-		if (c == '\n')
-		{
-			state_escaper();
-		}
-		return ret;
+	return true;
 }
 
 /*
@@ -62,11 +58,12 @@ static std::string _get_string(GetChar&& getc, GetEscape&& get_escape, char quot
  * 同代的匹配条件里, 是属于 and 关系, 要同时满足
  * 比如 div.p 是同代的 2 个条件. 需要同时满足
  */
-void html::selector::build_matchers()
+template<typename CharType>
+void html::basic_selector<CharType>::build_matchers()
 {
 	selector_matcher matcher;
 
-	if (m_select_string == "*")
+	if (m_select_string[0] == '*')
 	{
 		matcher.all_match = true;
 		// 所有的类型
@@ -89,16 +86,9 @@ void html::selector::build_matchers()
 		return getc();
 	};
 
-	auto get_string = [&getc, &get_escape, &state](char quote_char){
-		return _get_string(getc, get_escape, quote_char, [&state](){
-			state = 0;
-		});
-	};
+	std::basic_string<CharType> matcher_str;
 
-	std::string matcher_str;
-
-
-	char c;
+	CharType c;
 
 	do
 	{
@@ -196,18 +186,21 @@ void html::selector::build_matchers()
 	}while(c);
 }
 
-html::dom::dom(dom* parent) noexcept
+template<typename CharType>
+html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>* parent) noexcept
 	: m_parent(parent)
 {
 }
 
-html::dom::dom(const std::string& html_page, dom* parent)
-	: dom(parent)
+template<typename CharType>
+html::basic_dom<CharType>::basic_dom(const std::basic_string<CharType>& html_page, html::basic_dom<CharType>* parent)
+	: basic_dom(parent)
 {
 	append_partial_html(html_page);
 }
 
-html::dom::dom(html::dom&& d)
+template<typename CharType>
+html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>&& d)
 	: attributes(std::move(d.attributes))
 	, tag_name(std::move(d.tag_name))
 	, content_text(std::move(d.content_text))
@@ -218,18 +211,19 @@ html::dom::dom(html::dom&& d)
 {
 }
 
-html::dom::dom(const html::dom& d)
+template<typename CharType>
+html::basic_dom<CharType>::basic_dom(const html::basic_dom<CharType>& d)
 	: attributes(d.attributes)
 	, tag_name(d.tag_name)
 	, content_text(d.content_text)
 	, m_parent(d.m_parent)
 	, children(d.children)
-//	, html_parser_feeder(nullptr)
 	, html_parser_feeder_inialized(false)
 {
 }
 
-html::dom& html::dom::operator=(const html::dom& d)
+template<typename CharType>
+html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(const html::basic_dom<CharType>& d)
 {
 	attributes = d.attributes;
 	tag_name = d.tag_name;
@@ -240,7 +234,8 @@ html::dom& html::dom::operator=(const html::dom& d)
 	return *this;
 }
 
-html::dom& html::dom::operator=(html::dom&& d)
+template<typename CharType>
+html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(html::basic_dom<CharType>&& d)
 {
 	attributes = std::move(d.attributes);
 	tag_name = std::move(d.tag_name);
@@ -251,11 +246,14 @@ html::dom& html::dom::operator=(html::dom&& d)
 	return *this;
 }
 
-bool html::dom::append_partial_html(const std::string& str)
+template<typename CharType>
+bool html::basic_dom<CharType>::append_partial_html(const std::basic_string<CharType>& str)
 {
 	if (!html_parser_feeder_inialized)
 	{
-		html_parser_feeder = boost::coroutines::asymmetric_coroutine<const std::string*>::push_type(std::bind(&dom::html_parser, this, std::placeholders::_1));
+		html_parser_feeder = decltype(html_parser_feeder)(
+			std::bind(&basic_dom<CharType>::html_parser, this, std::placeholders::_1)
+		);
 		html_parser_feeder_inialized = true;
 	}
 
@@ -264,18 +262,32 @@ bool html::dom::append_partial_html(const std::string& str)
 	return true;
 }
 
-template<class Handler>
-void html::dom::dom_walk(html::dom_ptr d, Handler handler)
+
+template<typename CharType> const CharType* comment_tag_string();
+template<> const char* comment_tag_string<char>(){return "<!--";}
+template<> const wchar_t* comment_tag_string<wchar_t>(){return L"<!--";}
+
+template<typename CharType> const CharType* id_tag_string();
+template<> const char* id_tag_string<char>(){return "id";}
+template<> const wchar_t* id_tag_string<wchar_t>(){return L"id";}
+
+template<typename CharType> const CharType* class_tag_string();
+template<> const char* class_tag_string<char>(){return "class";}
+template<> const wchar_t* class_tag_string<wchar_t>(){return L"class";}
+
+template<typename CharType> template<class Handler>
+void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharType>> d, Handler handler)
 {
 	if(handler(d))
 		for (auto & c : d->children)
 		{
-			if (c->tag_name != "<!--")
+			if (c->tag_name !=  comment_tag_string<CharType>())
 				dom_walk(c, handler);
 		}
 }
 
-bool html::selector::condition::operator()(const html::dom& d) const
+template<typename CharType>
+bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom<CharType>& d) const
 {
 	if (!matching_tag_name.empty())
 	{
@@ -283,7 +295,7 @@ bool html::selector::condition::operator()(const html::dom& d) const
 	}
 	if (!matching_id.empty())
 	{
-		auto it = d.attributes.find("id");
+		auto it = d.attributes.find(id_tag_string<CharType>());
 		if ( it != d.attributes.end())
 		{
 			return it->second == matching_id;
@@ -291,7 +303,7 @@ bool html::selector::condition::operator()(const html::dom& d) const
 	}
 	if (!matching_class.empty())
 	{
-		auto it = d.attributes.find("class");
+		auto it = d.attributes.find(class_tag_string<CharType>());
 		if ( it != d.attributes.end())
 		{
 			return it->second == matching_class;
@@ -307,7 +319,8 @@ bool html::selector::condition::operator()(const html::dom& d) const
 	return false;
 }
 
-bool html::selector::selector_matcher::operator()(const html::dom& d) const
+template<typename CharType>
+bool html::basic_selector<CharType>::selector_matcher::operator()(const html::basic_dom<CharType>& d) const
 {
 	if (this->all_match)
 		return true;
@@ -326,10 +339,11 @@ bool html::selector::selector_matcher::operator()(const html::dom& d) const
 	return true;
 }
 
-html::dom html::dom::operator[](const selector& selector_) const
+template<typename CharType>
+html::basic_dom<CharType> html::basic_dom<CharType>::operator[](const basic_selector<CharType>& selector_) const
 {
-	html::dom selectee_dom;
-	html::dom matched_dom(*this);
+	html::basic_dom<CharType> selectee_dom;
+	html::basic_dom<CharType> matched_dom(*this);
 
 	for (auto & matcher : selector_)
 	{
@@ -337,7 +351,7 @@ html::dom html::dom::operator[](const selector& selector_) const
 
 		for( auto & c : selectee_dom.children)
 		{
-			dom_walk(c, [this, &matcher, &matched_dom, selector_](html::dom_ptr i)
+			dom_walk(c, [this, &matcher, &matched_dom, selector_](std::shared_ptr<html::basic_dom<CharType>> i)
 			{
 				if (matcher(*i))
 				{
@@ -352,11 +366,29 @@ html::dom html::dom::operator[](const selector& selector_) const
 	return matched_dom;
 }
 
-static inline std::string get_char_set( std::string type,  const std::string & default_charset )
+template<typename CharType>
+static std::basic_string<CharType> basic_literal(const char* literal);
+
+template<>
+std::basic_string<char> basic_literal(const char* literal)
 {
-	boost::cmatch what;
+	return literal;
+};
+
+template<>
+std::basic_string<wchar_t> basic_literal(const char* literal)
+{
+
+};
+
+
+template<typename CharType>
+static inline std::basic_string<CharType> get_char_set(const std::basic_string<CharType> type, const std::basic_string<CharType> & default_charset)
+{
+	boost::match_results<const CharType*> what;
+
 	// 首先是 text/html; charset=XXX
-	boost::regex ex( "charset=([a-zA-Z0-9\\-_]+)" );
+	boost::basic_regex<CharType, boost::regex_traits<CharType> > ex(basic_literal<CharType>("charset=([a-zA-Z0-9\\-_]+)"));
 
 	if( boost::regex_search( type.c_str(), what, ex ) )
 	{
@@ -370,14 +402,15 @@ static inline std::string get_char_set( std::string type,  const std::string & d
 	return default_charset;
 }
 
-std::string html::dom::charset(const std::string& default_charset) const
+template<typename CharType>
+std::basic_string<CharType> html::basic_dom<CharType>::basic_charset(const std::string& default_charset) const
 {
 	auto charset_dom = (*this)["meta"];
 
 	try {
 		for (auto & c : charset_dom.children)
 		{
-			dom_walk(c, [this, &default_charset](html::dom_ptr i)
+			dom_walk(c, [this, &default_charset](std::shared_ptr<basic_dom<CharType>> i)
 			{
 				if (strcmp_ignore_case(i->get_attr("http-equiv"), "content-type"))
 				{
@@ -407,11 +440,12 @@ std::string html::dom::charset(const std::string& default_charset) const
 	return default_charset;
 }
 
-std::string html::dom::to_plain_text() const
+template<typename CharType>
+std::basic_string<CharType> html::basic_dom<CharType>::to_plain_text() const
 {
-	std::string ret;
+	std::basic_string<CharType> ret;
 
-	if (!strcmp_ignore_case(tag_name, "script") && tag_name != "<!--")
+	if (!strcmp_ignore_case(tag_name, "script") && tag_name != comment_tag_string<CharType>())
 	{
 		ret += content_text;
 
@@ -424,14 +458,15 @@ std::string html::dom::to_plain_text() const
 	return ret;
 }
 
-void html::dom::to_html(std::ostream* out, int deep) const
+template<typename CharType>
+void html::basic_dom<CharType>::to_html(std::basic_ostream<CharType>* out, int deep) const
 {
 	if (!tag_name.empty())
 	{
 		for (auto i = 0; i < deep; i++)
 			*out << ' ';
 
-		if (tag_name!="<!--")
+		if (tag_name!= comment_tag_string<CharType>())
 			*out << "<" << tag_name;
 		else{
 			*out << tag_name;
@@ -445,7 +480,7 @@ void html::dom::to_html(std::ostream* out, int deep) const
 				*out << a.first << "=\"" << a.second << "\"";
 			}
 		}
-		if (tag_name!="<!--")
+		if (tag_name!=comment_tag_string<CharType>())
 			*out << ">\n";
 		else{
 			*out << content_text;
@@ -465,7 +500,7 @@ void html::dom::to_html(std::ostream* out, int deep) const
 
 	if (!tag_name.empty())
 	{
-		if (tag_name!="<!--")
+		if (tag_name!=comment_tag_string<CharType>())
 		{
 			for (auto i = 0; i < deep; i++)
 				*out << ' ';
@@ -474,21 +509,23 @@ void html::dom::to_html(std::ostream* out, int deep) const
 	}
 }
 
-std::string html::dom::to_html() const
+template<typename CharType>
+std::basic_string<CharType> html::basic_dom<CharType>::to_html() const
 {
-	std::stringstream ret;
+	std::basic_stringstream<CharType> ret;
 	to_html(&ret, -1);
 	return ret.str();
 }
 
 #define CASE_BLANK case ' ': case '\r': case '\n': case '\t'
 
-void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::string*>::pull_type& html_page_source)
+template<typename CharType>
+void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<CharType>*>::pull_type& html_page_source)
 {
 	int pre_state = 0, state = 0;
 
-	const std::string * _cur_str;
-	std::string::const_iterator _cur_str_it;
+	const std::basic_string<CharType> * _cur_str;
+	typename std::basic_string<CharType>::const_iterator _cur_str_it;
 
 	_cur_str = html_page_source.get();
 
@@ -513,20 +550,40 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 		return getc();
 	};
 
-	auto get_string = [&getc, &get_escape, &pre_state, &state](char quote_char){
-		return _get_string(getc, get_escape, quote_char, [&pre_state, &state](){
+	auto get_string = [&getc, &get_escape, &pre_state, &state](char quote_char)
+	{
+		std::basic_string<CharType> ret;
+
+		auto c = getc();
+
+		while ( (c != quote_char) && (c!= '\n'))
+		{
+			if ( c == '\'' )
+			{
+				c += get_escape();
+			}else
+			{
+				ret += c;
+			}
+			c = getc();
+		}
+
+		if (c == '\n')
+		{
 			pre_state = state;
 			state = 0;
-		});
+
+		}
+		return ret;
 	};
 
-	std::string tag; //当前处理的 tag
-	std::string content; // 当前 tag 下的内容
-	std::string k,v;
+	std::basic_string<CharType> tag; //当前处理的 tag
+	std::basic_string<CharType> content; // 当前 tag 下的内容
+	std::basic_string<CharType> k,v;
 
-	dom * current_ptr = this;
+	auto current_ptr = this;
 
-	char c;
+	CharType c;
 
 	std::vector<int> comment_stack;
 
@@ -552,7 +609,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 							state = 1;
 							if (!content.empty())
 							{
-								auto content_node = std::make_shared<dom>(current_ptr);
+								auto content_node = std::make_shared<basic_dom<CharType>>(current_ptr);
 								content_node->content_text = std::move(content);
 								current_ptr->children.push_back(std::move(content_node));
 							}
@@ -591,7 +648,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 						{
 							pre_state = state;
 							state = 2;
-							dom_ptr new_dom = std::make_shared<dom>(current_ptr);
+							auto new_dom = std::make_shared<basic_dom<CharType>>(current_ptr);
 							new_dom->tag_name = std::move(tag);
 
 							current_ptr->children.push_back(new_dom);
@@ -604,7 +661,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 						pre_state = state;
 						state = 0;
 
-						dom_ptr new_dom = std::make_shared<dom>(current_ptr);
+						auto new_dom = std::make_shared<basic_dom<CharType>>(current_ptr);
 						new_dom->tag_name = std::move(tag);
 						current_ptr->children.push_back(new_dom);
 						if(new_dom->tag_name[0] != '!')
@@ -688,7 +745,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 					{
 						// empty k=v
 						state = 2;
-						current_ptr->attributes[k] = "";
+						current_ptr->attributes[k];
 						k.clear();
 						v.clear();
 					}
@@ -702,7 +759,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 					{
 						pre_state = state;
 						state = 0;
-						current_ptr->attributes[k] = "";
+						current_ptr->attributes[k];
 						k.clear();
 						v.clear();
 						if ( current_ptr->tag_name[0] == '!')
@@ -738,7 +795,7 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 					{
 						pre_state = state;
 						state = 0;
-						current_ptr->attributes[k] = "";
+						current_ptr->attributes[k];
 						k.clear();
 						v.clear();
 						if ( current_ptr->tag_name[0] == '!')
@@ -890,8 +947,8 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 							content.pop_back();
 						comment_stack.pop_back();
 						state = comment_stack.empty()? 0 : 12;
-						dom_ptr comment_node = std::make_shared<dom>(current_ptr);
-						comment_node->tag_name = "<!--";
+						auto comment_node = std::make_shared<basic_dom<CharType>>(current_ptr);
+						comment_node->tag_name = comment_tag_string<CharType>();
 						comment_node->content_text = std::move(content);
 						current_ptr->children.push_back(comment_node);
 					}break;
@@ -1044,4 +1101,41 @@ void html::dom::html_parser(boost::coroutines::asymmetric_coroutine<const std::s
 
 #undef CASE_BLANK
 
+namespace {
+void extport_char_type()
+{
+	html::basic_dom<char> abc;
 
+	abc.append_partial_html("");
+	abc.to_html();
+	abc.to_plain_text();
+	abc.charset();
+
+	html::basic_dom<char> abcd("hello");
+
+	html::basic_dom<char> abcdef(std::move(abc));
+
+	abc["hello"];
+
+}
+
+void extport_wchar_type()
+{
+	html::basic_dom<wchar_t> abc;
+
+	abc.append_partial_html(L"");
+	abc.to_html();
+	abc.to_plain_text();
+
+	abc[L"hello"];
+// 	abc.charset();
+}
+
+}
+
+
+namespace html{
+
+// 	class template basic_dom<char>;
+
+}

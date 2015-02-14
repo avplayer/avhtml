@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <type_traits>
 #include <memory>
 #include <functional>
 
@@ -15,49 +16,52 @@
 
 namespace html{
 
-	class dom;
-	typedef std::shared_ptr<dom> dom_ptr;
-	typedef std::weak_ptr<dom> dom_weak_ptr;
+	template<typename CharType>
+	class basic_dom;
 
-	class selector
+// 	typedef std::shared_ptr<dom> dom_ptr;
+// 	typedef std::weak_ptr<dom> dom_weak_ptr;
+
+	template<typename CharType>
+	class basic_selector
 	{
 	public:
-		selector(const std::string&);
-		selector(std::string&&);
+		basic_selector(const std::basic_string<CharType>&);
+		basic_selector(std::basic_string<CharType>&&);
 
-		selector(const char* s)
-			: selector(std::string(s))
+		basic_selector(const CharType* s)
+			: basic_selector(std::basic_string<CharType>(s))
 		{}
 
 		template<int N>
-		selector(const char s[N])
-			: selector(std::string(s))
+		basic_selector(const CharType s[N])
+			: basic_selector(std::basic_string<CharType>(s))
 		{};
 
-		friend class dom;
+		friend class basic_dom<CharType>;
 
 	protected:
 		struct condition
 		{
-			std::string matching_tag_name;
-			std::string matching_id;
-			std::string matching_class;
-			std::string matching_name;
-			std::string matching_index;
-			std::string matching_attr;
-			bool operator()(const dom&) const;
+			std::basic_string<CharType> matching_tag_name;
+			std::basic_string<CharType> matching_id;
+			std::basic_string<CharType> matching_class;
+			std::basic_string<CharType> matching_name;
+			std::basic_string<CharType> matching_index;
+			std::basic_string<CharType> matching_attr;
+			bool operator()(const basic_dom<CharType>&) const;
 		};
 
 		struct selector_matcher{
-			bool operator()(const dom&) const;
+			bool operator()(const basic_dom<CharType>&) const;
 
 		private:
 			bool all_match = false;
 			std::vector<condition> m_conditions;
 
-			friend class selector;
+			friend class basic_selector;
 		};
-		typedef std::vector<selector_matcher>::const_iterator selector_matcher_iterator;
+		typedef typename std::vector<selector_matcher>::const_iterator selector_matcher_iterator;
 
 		selector_matcher_iterator begin() const {
 			return m_matchers.begin();
@@ -72,82 +76,91 @@ namespace html{
 
 		std::vector<selector_matcher> m_matchers;
 
-		std::string m_select_string;
+		std::basic_string<CharType> m_select_string;
 	};
 
-	class dom
+	template<typename CharType>
+	class basic_dom
 	{
 	public:
 
 		// 默认构造.
-		dom(dom* parent = nullptr) noexcept;
+		basic_dom(basic_dom<CharType>* parent = nullptr) noexcept;
 
 		// 从html构造 DOM.
-		explicit dom(const std::string& html_page, dom* parent = nullptr);
+		explicit basic_dom(const std::basic_string<CharType>& html_page, basic_dom<CharType>* parent = nullptr);
 
-		explicit dom(const dom& d);
-		dom(dom&& d);
-		dom& operator = (const dom& d);
-		dom& operator = (dom&& d);
+		explicit basic_dom(const basic_dom<CharType>& d);
+		basic_dom(basic_dom<CharType>&& d);
+		basic_dom<CharType>& operator = (const basic_dom<CharType>& d);
+		basic_dom<CharType>& operator = (basic_dom<CharType>&& d);
 
 	public:
 		// 喂入一html片段.
-		bool append_partial_html(const std::string &);
+		bool append_partial_html(const std::basic_string<CharType>&);
 
 	public:
-		dom operator[](const selector&) const;
-		void clear(){
-			attributes.clear();
-			tag_name.clear();
-			content_text.clear();
-			children.clear();
-			m_parent = nullptr;
-		}
+		basic_dom<CharType>  operator[](const basic_selector<CharType>&) const;
 
-		std::string to_html() const;
+		std::basic_string<CharType> to_html() const;
 
-		std::string to_plain_text() const;
+		std::basic_string<CharType> to_plain_text() const;
 
 		// return charset of the page if page contain meta http-equiv= content="charset="
-		std::string charset(const std::string& default_charset = "UTF-8" ) const;
+		// note, for wchar version, always return UTF-16 or UTF-32 based on platform
+		template<typename U = CharType>
+		typename std::enable_if<std::is_same<U, char>::value, std::basic_string<CharType>>::type
+		charset(const std::string& default_charset = "UTF-8") const
+		{
+			return basic_charset(default_charset);
+		}
 
-		std::vector<dom_ptr> get_children(){
+		std::vector<std::shared_ptr<basic_dom<CharType>>> get_children(){
 			return children;
 		}
 
-		std::string get_attr(const std::string& attr)
+		std::basic_string<CharType> get_attr(const std::basic_string<CharType>& attr)
 		{
 			auto it = attributes.find(attr);
 
 			if (it==attributes.end())
 			{
-				return "";
+				return std::basic_string<CharType>();
 			}
 
 			return it->second;
 		}
 
 	private:
-		void html_parser(boost::coroutines::asymmetric_coroutine<const std::string*>::pull_type & html_page_source);
-		boost::coroutines::asymmetric_coroutine<const std::string*>::push_type html_parser_feeder;
+		void html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<CharType>*>::pull_type & html_page_source);
+		typename boost::coroutines::asymmetric_coroutine<const std::basic_string<CharType>*>::push_type html_parser_feeder;
 		bool html_parser_feeder_inialized = false;
+
+ 		std::basic_string<CharType> basic_charset(const std::string& default_charset) const;
 
 	protected:
 
-		void to_html(std::ostream*, int deep) const;
+		void to_html(std::basic_ostream<CharType>*, int deep) const;
 
 
-		std::map<std::string, std::string> attributes;
-		std::string tag_name;
+		std::map<std::basic_string<CharType>, std::basic_string<CharType>> attributes;
+		std::basic_string<CharType> tag_name;
 
-		std::string content_text;
+		std::basic_string<CharType> content_text;
 
-		std::vector<dom_ptr> children;
-		dom* m_parent;
+		typedef std::shared_ptr<basic_dom<CharType>> basic_dom_ptr;
+
+		std::vector<basic_dom_ptr> children;
+		basic_dom<CharType>* m_parent;
 
 		template<class T>
-		static void dom_walk(html::dom_ptr d, T handler);
+		static void dom_walk(basic_dom_ptr d, T handler);
 
-		friend class selector;
+		friend class basic_selector<CharType>;
 	};
-};
+
+	typedef basic_dom<char> dom;
+
+
+
+} // namespace html
