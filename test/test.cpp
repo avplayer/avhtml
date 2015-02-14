@@ -4,7 +4,12 @@
 #include <iostream>
 #include <boost/locale.hpp>
 
+
 const char msg_usage[] = "\nusage : %s <html file name> <selector>\n\n";
+
+
+void callback(std::shared_ptr<html::dom>)
+{}
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +41,9 @@ int main(int argc, char *argv[])
 		(*instream) >> std::noskipws;
 
 		std::string test_page((std::istreambuf_iterator<char>(* instream)), std::istreambuf_iterator<char>());
-		cu_page.append_partial_html(test_page);
+		cu_page.append_partial_html(test_page) | "div" | callback;
+
+		//; [](std::shared_ptr<html::dom>){};
 
 		auto charset = cu_page.charset();
 

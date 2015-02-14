@@ -10,6 +10,7 @@
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 #include <boost/signals2/signal.hpp>
+#include <boost/proto/traits.hpp>
 
 #ifdef _MSC_VER
 #	define noexcept throw()
@@ -84,12 +85,34 @@ namespace html{
 		template<typename CharType>
 		class basic_dom_node_parser
 		{
-			basic_dom_node_parser(html::basic_dom<CharType>& domer, const std::basic_string<CharType>& str);
+			basic_dom_node_parser& operator = (const basic_dom_node_parser&) = delete;
+			basic_dom_node_parser& operator = (basic_dom_node_parser&&)  = delete;
+			basic_dom_node_parser(const basic_dom_node_parser&) = delete;
+
+			basic_dom_node_parser(html::basic_dom<CharType>* domer, const std::basic_string<CharType>& str);
+
+			basic_dom_node_parser(basic_dom_node_parser&& other);
+
+		public: // interface
+			template<typename Handler>
+			typename std::enable_if<
+				std::is_same<typename std::result_of<Handler(std::shared_ptr<basic_dom<CharType>>)>::type, void>::value
+			>::type
+			operator |(const Handler& node_reciver)
+			{
+				set_callback_fuction(node_reciver);
+			}
+
+			template<typename Handler>
+			typename std::enable_if<std::is_function<Handler>::value>::type
+			operator |(const Handler& node_reciver)
+			{
+				set_callback_fuction(node_reciver);
+			}
+
+			basic_dom_node_parser& operator |(const basic_selector<CharType>&);
 
 		public:
-			template<class Handler>
-			void operator |(Handler node_reciver);
-
 			~basic_dom_node_parser();
 
 			friend class basic_dom<CharType>;
@@ -97,9 +120,17 @@ namespace html{
 			// called from dom
 			void operator()(std::shared_ptr<basic_dom<CharType>>);
 
-			basic_dom<CharType>& m_dom;
+			template<typename Handler>
+			void set_callback_fuction(Handler&& cb)
+			{
+				m_callback = cb;
+			}
+
+			basic_dom<CharType>* m_dom;
 
 			const std::basic_string<CharType>& m_str;
+
+			std::function<void(std::shared_ptr<basic_dom<CharType>>)> m_callback;
 		};
 	}
 

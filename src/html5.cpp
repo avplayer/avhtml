@@ -233,16 +233,42 @@ html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(html::basic_dom<
 }
 
 template<typename CharType>
-html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(html::basic_dom<CharType>& domer, const std::basic_string<CharType>& str)
+html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(html::basic_dom<CharType>* domer, const std::basic_string<CharType>& str)
 	: m_dom(domer)
 	, m_str(str)
 {
 }
 
 template<typename CharType>
+html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(basic_dom_node_parser&& other)
+	: m_str(other.m_str)
+{
+	m_dom = other.m_dom;
+	other.m_dom = nullptr;
+}
+
+template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
 {
-	m_dom.html_parser_feeder(&m_str);
+	if (m_dom)
+		m_dom->html_parser_feeder(&m_str);
+}
+
+template<typename CharType>
+void html::detail::basic_dom_node_parser<CharType>::operator()(std::shared_ptr<basic_dom<CharType>> nodeptr)
+{
+	// TODO 执行过滤. 然后对通过的调用回调函数
+
+	m_callback(nodeptr);
+}
+
+template<typename CharType>
+html::detail::basic_dom_node_parser<CharType>& html::detail::basic_dom_node_parser<CharType>::operator | (const basic_selector<CharType>&)
+{
+	// TODO 向 dom 注册回调函数.
+
+	// 并在析构的时候撤销注册.
+	return *this;
 }
 
 template<typename CharType>
@@ -256,9 +282,8 @@ html::detail::basic_dom_node_parser<CharType> html::basic_dom<CharType>::append_
 		html_parser_feeder_inialized = true;
 	}
 
-	return detail::basic_dom_node_parser<CharType>(*this, str);
+	return detail::basic_dom_node_parser<CharType>(this, str);
 }
-
 
 template<typename CharType> const CharType* comment_tag_string();
 template<> const char* comment_tag_string<char>(){return "<!--";}
@@ -1109,7 +1134,7 @@ void extport_char_type()
 {
 	html::dom abc;
 
-	abc.append_partial_html("");
+	abc.append_partial_html("") | "*";
 	abc.to_html();
 	abc.to_plain_text();
 	abc.charset();
@@ -1126,7 +1151,7 @@ void extport_wchar_type()
 {
 	html::wdom abc;
 
-	abc.append_partial_html(L"");
+	abc.append_partial_html(L"") | L"*";
 	abc.to_html();
 	abc.to_plain_text();
 
