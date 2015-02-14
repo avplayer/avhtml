@@ -71,7 +71,7 @@ void test()
 
 比如
 
-<pre style='color:#1f1c1b;background-color:#ffffff;'>
-&lt;div&gt; &lt;p id=&quot;id1&quot;&gt;&lt;/p&gt;&lt;/div&gt; 这样的 html ,  是可以被 &quot;div #id1&quot; 选中的. 返回的就是 那个 p 节点. 而 div#id1 则返回空.</pre>
+&lt;div&gt; &lt;p id=&quot;id1&quot;&gt;&lt;/p&gt;&lt;/div&gt; 这样的 html,
+是可以被 "div #id1" 选中的. 返回的就是 那个 p 节点. 而 "div#id1" 则返回空.
 
 
