@@ -14,27 +14,43 @@ avhtml 支持边输入 html 页面边解析. 也就是页面不需要完全下�
 
 ## 选择器
 
-avhtml 支持 jquery 一样的选择器来选择 DOM 里的节点. 极大的方便了大家提取 html 页面里的信息.
+avhtml 支持 jquery 一样的选择器语法来选择 DOM 里的节点. 极大的方便了大家提取 html 页面里的信息.
 
 要使用选择器, 使用 [] 下标即可.
 
 如要返回页面的标题, 如下面的例子
 
-<pre>
+```cpp
 void test()
 {
-	html::dom page;
+    html::dom page;
 
-	page.append_partial_html(&quot;&lt;html&gt;&lt;head&gt;&quot;);
-	page.append_partial_html(&quot;&lt;title&gt;hello world&lt;/title&quot;);
-	page.append_partial_html(&quot;&gt;&lt;/head&gt;&lt;/html&gt;&quot;);
+    page.append_partial_html("<html><head>");
+    page.append_partial_html("<title>hello world</title");
+    page.append_partial_html("></head></html>");
 
-	assert(page[&quot;title&quot;].to_plain_text() == &quot;hello world&quot;);
+    assert(page["title"].to_plain_text() == "hello world");
 }
-</pre>
-
+```
 
 使用 page\["title"\] 就可以返回了, 就好像 jquery 的选择符.
 返回的结果还是 dom 类型. 可以使用 to_plain_text() 转为纯文本格式.
 
+## 选择器语法支持列表
 
+| Selector           | Example                | Desc                              | Support |
+|--------------------|------------------------|-----------------------------------|---------|
+| *                  | page["*"]              | all elements                      |         |
+| #id                | page["#id1"]           | id="id1"                          | √      |
+| .class             | page[".class1"]        | class="class1"                    | √      |
+| element            | page["div"]            | all <div> tags                    | √      |
+| :first             | page["p:first"]        | first <p> tag                     |         |
+| :last              | page["p:last"]         | last <p> tag                      |         |
+| :eq                | page["p:eq(3)"]        | fourth <p> tag(index starts at 0) |         |
+| :qt                | page["p:qt(3)"]        | list <p> tag with index > 3       |         |
+| :lt                | page["p:lt(3)"]        | list <p> tag with index < 3       |         |
+| :input             | page[":input"]         | all input tags                    | √      |
+| [attribute]        | page["[href]"]         | all tags with href attribute      | √      |
+| [attribute=value]  | page["[href='#']"]     | all tags with empty link          |         |
+| [attribute!=value] | page["[href!='#']"]    | all tags with not empty link      |         |
+| [attribute$=value] | page["[href$='.jpg']"] | all tags with jpg link            |         |
