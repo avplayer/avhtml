@@ -33,17 +33,6 @@ static bool strcmp_ignore_case(const std::wstring& a, const std::wstring& b)
 	return false;
 }
 
-static bool strcmp_ignore_case(const std::wstring& a, const char b[])
-{
-	for ( int i ; i < a.size() ; i ++)
-	{
-		if (b[i] != a[i])
-			return false;
-	}
-
-	return true;
-}
-
 /*
  * matcher 是分代的
  * matcher 会先执行一次匹配, 然后再从上一次执行的结果里执行匹配
@@ -275,6 +264,11 @@ template<typename CharType> const CharType* class_tag_string();
 template<> const char* class_tag_string<char>(){return "class";}
 template<> const wchar_t* class_tag_string<wchar_t>(){return L"class";}
 
+template<typename CharType> const CharType* script_tag_string();
+template<> const char* script_tag_string<char>(){return "script";}
+template<> const wchar_t* script_tag_string<wchar_t>(){return L"script";}
+
+
 template<typename CharType> template<class Handler>
 void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharType>> d, Handler handler)
 {
@@ -445,7 +439,7 @@ std::basic_string<CharType> html::basic_dom<CharType>::to_plain_text() const
 {
 	std::basic_string<CharType> ret;
 
-	if (!strcmp_ignore_case(tag_name, "script") && tag_name != comment_tag_string<CharType>())
+	if (!strcmp_ignore_case(tag_name, script_tag_string<CharType>()) && tag_name != comment_tag_string<CharType>())
 	{
 		ret += content_text;
 
@@ -666,7 +660,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						current_ptr->children.push_back(new_dom);
 						if(new_dom->tag_name[0] != '!')
 							current_ptr = new_dom.get();
-						if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
 							state = 20;
 						}
@@ -699,7 +693,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
-						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
 							state = 20;
 						}
@@ -765,7 +759,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
-						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
 							state = 20;
 						}
@@ -801,7 +795,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						if ( current_ptr->tag_name[0] == '!')
 						{
 							current_ptr = current_ptr->m_parent;
-						}else if (strcmp_ignore_case(current_ptr->tag_name, "script"))
+						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
 							state = 20;
 						}
@@ -1104,16 +1098,16 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 namespace {
 void extport_char_type()
 {
-	html::basic_dom<char> abc;
+	html::dom abc;
 
 	abc.append_partial_html("");
 	abc.to_html();
 	abc.to_plain_text();
 	abc.charset();
 
-	html::basic_dom<char> abcd("hello");
+	html::dom abcd("hello");
 
-	html::basic_dom<char> abcdef(std::move(abc));
+	html::dom abcdef(std::move(abc));
 
 	abc["hello"];
 
@@ -1121,14 +1115,15 @@ void extport_char_type()
 
 void extport_wchar_type()
 {
-	html::basic_dom<wchar_t> abc;
+	html::wdom abc;
 
 	abc.append_partial_html(L"");
 	abc.to_html();
 	abc.to_plain_text();
 
 	abc[L"hello"];
-// 	abc.charset();
+
+ 	// abc.charset(); wchar_t version does not have this member
 }
 
 }

@@ -107,11 +107,11 @@ namespace html{
 		std::basic_string<CharType> to_plain_text() const;
 
 		// return charset of the page if page contain meta http-equiv= content="charset="
-		// note, for wchar version, always return UTF-16 or UTF-32 based on platform
-		template<typename U = CharType>
+		template<typename... Dummy, typename U = CharType>
 		typename std::enable_if<std::is_same<U, char>::value, std::basic_string<CharType>>::type
 		charset(const std::string& default_charset = "UTF-8") const
 		{
+			static_assert(sizeof...(Dummy)==0, "Do not specify template arguments!");
 			return basic_charset(default_charset);
 		}
 
@@ -160,7 +160,6 @@ namespace html{
 	};
 
 	typedef basic_dom<char> dom;
-
-
+	typedef basic_dom<wchar_t> wdom;
 
 } // namespace html
