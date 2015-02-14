@@ -41,9 +41,7 @@ int main(int argc, char *argv[])
 		(*instream) >> std::noskipws;
 
 		std::string test_page((std::istreambuf_iterator<char>(* instream)), std::istreambuf_iterator<char>());
-		cu_page.append_partial_html(test_page) | "div" | callback;
-
-		//; [](std::shared_ptr<html::dom>){};
+		cu_page.append_partial_html(test_page) | "div" | [](std::shared_ptr<html::dom>){};
 
 		auto charset = cu_page.charset();
 
