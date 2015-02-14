@@ -240,8 +240,20 @@ html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(html::basic
 }
 
 template<typename CharType>
+html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(const basic_dom_node_parser& other)
+	: m_str(other.m_str)
+	, m_callback(other.m_callback)
+{
+	m_dom = nullptr;
+	int a = 0;
+	a = 2;
+}
+
+template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(basic_dom_node_parser&& other)
 	: m_str(other.m_str)
+	, m_callback(std::move(other.m_callback))
+	, m_sig_connection(std::move(other.m_sig_connection))
 {
 	m_dom = other.m_dom;
 	other.m_dom = nullptr;
@@ -252,6 +264,8 @@ html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
 {
 	if (m_dom)
 		m_dom->html_parser_feeder(&m_str);
+	if (m_sig_connection.connected())
+		m_sig_connection.disconnect();
 }
 
 template<typename CharType>
@@ -263,9 +277,22 @@ void html::detail::basic_dom_node_parser<CharType>::operator()(std::shared_ptr<b
 }
 
 template<typename CharType>
-html::detail::basic_dom_node_parser<CharType>& html::detail::basic_dom_node_parser<CharType>::operator | (const basic_selector<CharType>&)
+void html::detail::basic_dom_node_parser<CharType>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<CharType>>)>&& cb)
 {
 	// TODO 向 dom 注册回调函数.
+	m_callback = cb;
+
+	m_sig_connection = m_dom->m_new_node_signal.connect(*this);
+}
+
+template void html::detail::basic_dom_node_parser<char>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<char>>)>&& cb);
+template void html::detail::basic_dom_node_parser<wchar_t>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<wchar_t>>)>&& cb);
+
+template<typename CharType>
+html::detail::basic_dom_node_parser<CharType>& html::detail::basic_dom_node_parser<CharType>::operator | (const basic_selector<CharType>&)
+{
+
+// 	m_dom->m_new_node_signal.connect(*this);
 
 	// 并在析构的时候撤销注册.
 	return *this;
@@ -639,6 +666,8 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 								auto content_node = std::make_shared<basic_dom<CharType>>(current_ptr);
 								content_node->content_text = std::move(content);
 								current_ptr->children.push_back(std::move(content_node));
+
+								m_new_node_signal(content_node);
 							}
 						}
 					}
@@ -680,6 +709,8 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 
 							current_ptr->children.push_back(new_dom);
 							current_ptr = new_dom.get();
+
+							m_new_node_signal(new_dom);
 						}
 					}
 					break;
@@ -697,6 +728,8 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						{
 							state = 20;
 						}
+
+						m_new_node_signal(new_dom);
 					}
 					break;
 					case '/':

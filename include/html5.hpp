@@ -85,13 +85,16 @@ namespace html{
 		template<typename CharType>
 		class basic_dom_node_parser
 		{
-			basic_dom_node_parser& operator = (const basic_dom_node_parser&) = delete;
 			basic_dom_node_parser& operator = (basic_dom_node_parser&&)  = delete;
-			basic_dom_node_parser(const basic_dom_node_parser&) = delete;
+			basic_dom_node_parser& operator = (const basic_dom_node_parser&) = delete;
 
 			basic_dom_node_parser(html::basic_dom<CharType>* domer, const std::basic_string<CharType>& str);
-
 			basic_dom_node_parser(basic_dom_node_parser&& other);
+
+		public: // only for signals2
+			basic_dom_node_parser(const basic_dom_node_parser&);
+			// called from dom
+			void operator()(std::shared_ptr<basic_dom<CharType>>);
 
 		public: // interface
 			template<typename Handler>
@@ -100,14 +103,14 @@ namespace html{
 			>::type
 			operator |(const Handler& node_reciver)
 			{
-				set_callback_fuction(node_reciver);
+				set_callback_fuction(decltype(m_callback)(node_reciver));
 			}
 
 			template<typename Handler>
 			typename std::enable_if<std::is_function<Handler>::value>::type
 			operator |(const Handler& node_reciver)
 			{
-				set_callback_fuction(node_reciver);
+				set_callback_fuction(decltype(m_callback)(node_reciver));
 			}
 
 			basic_dom_node_parser& operator |(const basic_selector<CharType>&);
@@ -117,20 +120,15 @@ namespace html{
 
 			friend class basic_dom<CharType>;
 		private:
-			// called from dom
-			void operator()(std::shared_ptr<basic_dom<CharType>>);
 
-			template<typename Handler>
-			void set_callback_fuction(Handler&& cb)
-			{
-				m_callback = cb;
-			}
+			void set_callback_fuction(std::function<void(std::shared_ptr<basic_dom<CharType>>)>&& cb);
 
 			basic_dom<CharType>* m_dom;
 
 			const std::basic_string<CharType>& m_str;
 
 			std::function<void(std::shared_ptr<basic_dom<CharType>>)> m_callback;
+			boost::signals2::scoped_connection m_sig_connection;
 		};
 	}
 
@@ -192,6 +190,9 @@ namespace html{
 		typename boost::coroutines::asymmetric_coroutine<const std::basic_string<CharType>*>::push_type html_parser_feeder;
 		bool html_parser_feeder_inialized = false;
 
+		typedef std::shared_ptr<basic_dom<CharType>> basic_dom_ptr;
+		boost::signals2::signal<void(basic_dom_ptr)> m_new_node_signal;
+
  		std::basic_string<CharType> basic_charset(const std::string& default_charset) const;
 
 	protected:
@@ -203,9 +204,6 @@ namespace html{
 		std::basic_string<CharType> tag_name;
 
 		std::basic_string<CharType> content_text;
-
-		typedef std::shared_ptr<basic_dom<CharType>> basic_dom_ptr;
-
 		std::vector<basic_dom_ptr> children;
 		basic_dom<CharType>* m_parent;
 
