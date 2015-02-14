@@ -26,10 +26,22 @@ void test()
     html::dom page;
 
     page.append_partial_html("<html><head>");
-    page.append_partial_html("<title>hello world</title");
-    page.append_partial_html("></head></html>");
 
-    assert(page["title"].to_plain_text() == "hello world");
+
+    // assert(page["title"].to_plain_text() == "hello world"); // 这里失败
+
+    page.append_partial_html("<title>hello world</title");
+
+    // assert(page["title"].to_plain_text() == "hello world"); // 这里失败
+
+
+    page.append_partial_html("></he");
+
+    assert(page["title"].to_plain_text() == "hello world"); // 成功!
+
+    page.append_partial_html("ad></html>");
+
+    assert(page["title"].to_plain_text() == "hello world"); // 成功!
 }
 ```
 
