@@ -1,8 +1,5 @@
 ﻿
 #include "html5.hpp"
-
-
-
 #include <boost/regex.hpp>
 
 template<typename CharType>
@@ -236,7 +233,20 @@ html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(html::basic_dom<
 }
 
 template<typename CharType>
-bool html::basic_dom<CharType>::append_partial_html(const std::basic_string<CharType>& str)
+html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(html::basic_dom<CharType>& domer, const std::basic_string<CharType>& str)
+	: m_dom(domer)
+	, m_str(str)
+{
+}
+
+template<typename CharType>
+html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
+{
+	m_dom.html_parser_feeder(&m_str);
+}
+
+template<typename CharType>
+html::detail::basic_dom_node_parser<CharType> html::basic_dom<CharType>::append_partial_html(const std::basic_string<CharType>& str)
 {
 	if (!html_parser_feeder_inialized)
 	{
@@ -246,9 +256,7 @@ bool html::basic_dom<CharType>::append_partial_html(const std::basic_string<Char
 		html_parser_feeder_inialized = true;
 	}
 
-//	for(auto c: str)
-	html_parser_feeder(&str);
-	return true;
+	return detail::basic_dom_node_parser<CharType>(*this, str);
 }
 
 
@@ -937,6 +945,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 				{
 					case '>':
 					{
+						tag.clear();
 						if (pre_state == 12)
 							content.pop_back();
 						comment_stack.pop_back();
@@ -1125,12 +1134,5 @@ void extport_wchar_type()
 
  	// abc.charset(); wchar_t version does not have this member
 }
-
-}
-
-
-namespace html{
-
-// 	class template basic_dom<char>;
 
 }

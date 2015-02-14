@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
+#include <boost/signals2/signal.hpp>
 
 #ifdef _MSC_VER
 #	define noexcept throw()
@@ -79,6 +80,30 @@ namespace html{
 		std::basic_string<CharType> m_select_string;
 	};
 
+	namespace detail {
+		template<typename CharType>
+		class basic_dom_node_parser
+		{
+			basic_dom_node_parser(html::basic_dom<CharType>& domer, const std::basic_string<CharType>& str);
+
+		public:
+			template<class Handler>
+			void operator |(Handler node_reciver);
+
+			~basic_dom_node_parser();
+
+			friend class basic_dom<CharType>;
+		private:
+			// called from dom
+			void operator()(std::shared_ptr<basic_dom<CharType>>);
+
+			basic_dom<CharType>& m_dom;
+
+			const std::basic_string<CharType>& m_str;
+		};
+	}
+
+
 	template<typename CharType>
 	class basic_dom
 	{
@@ -97,7 +122,7 @@ namespace html{
 
 	public:
 		// 喂入一html片段.
-		bool append_partial_html(const std::basic_string<CharType>&);
+		detail::basic_dom_node_parser<CharType> append_partial_html(const std::basic_string<CharType>&);
 
 	public:
 		basic_dom<CharType>  operator[](const basic_selector<CharType>&) const;
@@ -157,6 +182,7 @@ namespace html{
 		static void dom_walk(basic_dom_ptr d, T handler);
 
 		friend class basic_selector<CharType>;
+		friend class detail::basic_dom_node_parser<CharType>;
 	};
 
 	typedef basic_dom<char> dom;
