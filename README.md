@@ -40,17 +40,17 @@ void test()
 
 | Selector           | Example                | Desc                              | Support |
 |--------------------|------------------------|-----------------------------------|---------|
-| *                  | page["*"]              | all elements                      |         |
-| #id                | page["#id1"]           | id="id1"                          | √      |
-| .class             | page[".class1"]        | class="class1"                    | √      |
-| element            | page["div"]            | all <div> tags                    | √      |
+| *                  | page["*"]              | all elements                      | √       |
+| #id                | page["#id1"]           | id="id1"                          | √       |
+| .class             | page[".class1"]        | class="class1"                    | √       |
+| element            | page["div"]            | all <div> tags                    | √       |
 | :first             | page["p:first"]        | first <p> tag                     |         |
 | :last              | page["p:last"]         | last <p> tag                      |         |
 | :eq                | page["p:eq(3)"]        | fourth <p> tag(index starts at 0) |         |
 | :qt                | page["p:qt(3)"]        | list <p> tag with index > 3       |         |
 | :lt                | page["p:lt(3)"]        | list <p> tag with index < 3       |         |
-| :input             | page[":input"]         | all input tags                    | √      |
-| [attribute]        | page["[href]"]         | all tags with href attribute      | √      |
+| :input             | page[":input"]         | all input tags                    |         |
+| [attribute]        | page["[href]"]         | all tags with href attribute      | √       |
 | [attribute=value]  | page["[href='#']"]     | all tags with empty link          |         |
 | [attribute!=value] | page["[href!='#']"]    | all tags with not empty link      |         |
 | [attribute$=value] | page["[href$='.jpg']"] | all tags with jpg link            |         |
