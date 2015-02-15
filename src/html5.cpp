@@ -5,6 +5,8 @@
 #ifdef _MSC_VER
 #define strcasecmp stricmp
 #define strncasecmp  strnicmp
+
+#define wcsncasecmp(a,b,l) lstrcmpiW(a,b)
 #endif
 
 template<typename CharType>
@@ -31,7 +33,7 @@ static bool strcmp_ignore_case(const std::string& a, const std::string& b)
 static bool strcmp_ignore_case(const std::wstring& a, const std::wstring& b)
 {
 	if ( a.size() == b.size())
-		return memcmp(a.c_str(), b.c_str(), a.size() * sizeof(wchar_t)) == 0;
+		return wcsncasecmp(a.c_str(), b.c_str(), a.size() * sizeof(wchar_t)) == 0;
 	return false;
 }
 
