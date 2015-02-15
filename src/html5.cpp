@@ -269,34 +269,47 @@ html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
 }
 
 template<typename CharType>
-void html::detail::basic_dom_node_parser<CharType>::operator()(std::shared_ptr<basic_dom<CharType>> nodeptr)
+void html::detail::basic_dom_node_parser<CharType>::operator()(tag_stage s, std::shared_ptr<basic_dom<CharType>> nodeptr)
 {
-	// TODO 执行过滤. 然后对通过的调用回调函数
+	if (!m_selector)
+	{
+		if (m_callback)
+			m_callback(s, nodeptr);
+		return;
+	}
 
-	m_callback(nodeptr);
+	// TODO 执行过滤. 然后对通过的调用回调函数
+	auto macher_it = m_selector->begin();
+
+
+
+
+
+
+
+	m_callback(s, nodeptr);
 }
 
 template<typename CharType>
-void html::detail::basic_dom_node_parser<CharType>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<CharType>>)>&& cb)
+void html::detail::basic_dom_node_parser<CharType>::set_callback_fuction(std::function<void(tag_stage, std::shared_ptr<html::basic_dom<CharType>>)>&& cb)
 {
-	// TODO 向 dom 注册回调函数.
 	m_callback = cb;
-
+	// 在析构的时候自动撤销注册.
 	m_sig_connection = m_dom->m_new_node_signal.connect(*this);
 }
 
-template void html::detail::basic_dom_node_parser<char>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<char>>)>&& cb);
-template void html::detail::basic_dom_node_parser<wchar_t>::set_callback_fuction(std::function<void(std::shared_ptr<html::basic_dom<wchar_t>>)>&& cb);
+template void html::detail::basic_dom_node_parser<char>::set_callback_fuction(std::function<void(tag_stage, std::shared_ptr<html::basic_dom<char>>)>&& cb);
+template void html::detail::basic_dom_node_parser<wchar_t>::set_callback_fuction(std::function<void(tag_stage, std::shared_ptr<html::basic_dom<wchar_t>>)>&& cb);
 
 template<typename CharType>
-html::detail::basic_dom_node_parser<CharType>& html::detail::basic_dom_node_parser<CharType>::operator | (const basic_selector<CharType>&)
+html::detail::basic_dom_node_parser<CharType>& html::detail::basic_dom_node_parser<CharType>::operator | (const basic_selector<CharType>& selector_)
 {
-
-// 	m_dom->m_new_node_signal.connect(*this);
-
-	// 并在析构的时候撤销注册.
+	m_selector = & selector_;
 	return *this;
 }
+
+template html::detail::basic_dom_node_parser<char>& html::detail::basic_dom_node_parser<char>::operator | (const basic_selector<char>& selector_);
+template html::detail::basic_dom_node_parser<wchar_t>& html::detail::basic_dom_node_parser<wchar_t>::operator | (const basic_selector<wchar_t>& selector_);
 
 template<typename CharType>
 html::detail::basic_dom_node_parser<CharType> html::basic_dom<CharType>::append_partial_html(const std::basic_string<CharType>& str)
@@ -667,7 +680,8 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 								content_node->content_text = std::move(content);
 								current_ptr->children.push_back(std::move(content_node));
 
-								m_new_node_signal(content_node);
+								m_new_node_signal(tag_open, content_node);
+								m_new_node_signal(tag_close, content_node);
 							}
 						}
 					}
@@ -709,8 +723,6 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 
 							current_ptr->children.push_back(new_dom);
 							current_ptr = new_dom.get();
-
-							m_new_node_signal(new_dom);
 						}
 					}
 					break;
@@ -728,8 +740,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						{
 							state = 20;
 						}
-
-						m_new_node_signal(new_dom);
+						m_new_node_signal(tag_open, current_ptr->shared_from_this());
 					}
 					break;
 					case '/':
@@ -756,8 +767,10 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						// tag 解析完毕, 正式进入 下一个 tag
 						pre_state = state;
 						state = 0;
+						m_new_node_signal(tag_open, current_ptr->shared_from_this());
 						if ( current_ptr->tag_name[0] == '!')
 						{
+							m_new_node_signal(tag_close, current_ptr->shared_from_this());
 							current_ptr = current_ptr->m_parent;
 						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
@@ -780,8 +793,10 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						state = 0;
 
 						if (current_ptr->m_parent)
+						{
+							m_new_node_signal(tag_close, current_ptr->shared_from_this());
 							current_ptr = current_ptr->m_parent;
-						else
+						}else
 							current_ptr = this;
 					}break;
 					case '\"':
@@ -822,9 +837,13 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						current_ptr->attributes[k];
 						k.clear();
 						v.clear();
+						m_new_node_signal(tag_open, current_ptr->shared_from_this());
 						if ( current_ptr->tag_name[0] == '!')
 						{
+ 							m_new_node_signal(tag_close, current_ptr->shared_from_this());
+
 							current_ptr = current_ptr->m_parent;
+
 						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
 							state = 20;
@@ -858,8 +877,12 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 						current_ptr->attributes[k];
 						k.clear();
 						v.clear();
+
+						m_new_node_signal(tag_open, current_ptr->shared_from_this());
+
 						if ( current_ptr->tag_name[0] == '!')
 						{
+							m_new_node_signal(tag_close, current_ptr->shared_from_this());
 							current_ptr = current_ptr->m_parent;
 						}else if (strcmp_ignore_case(current_ptr->tag_name, script_tag_string<CharType>()))
 						{
@@ -908,7 +931,10 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 
 							// 那就退出本 dom 节点
 							if (current_ptr->m_parent)
+							{
+								m_new_node_signal(tag_close, current_ptr->shared_from_this());
 								current_ptr = current_ptr->m_parent;
+							}
 							else
 								current_ptr = this;
 						}else
@@ -1148,6 +1174,7 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 							for (int i =0 ; i < 8 ;i++)
 								content.pop_back();
 							current_ptr->content_text = std::move(content);
+							m_new_node_signal(tag_close, current_ptr->shared_from_this());
 							current_ptr = current_ptr->m_parent;
 						}
 					}break;
