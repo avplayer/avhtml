@@ -2,6 +2,11 @@
 #include "html5.hpp"
 #include <boost/regex.hpp>
 
+#ifdef _MSC_VER
+#define strcasecmp stricmp
+#define strncasecmp  strnicmp
+#endif
+
 template<typename CharType>
 html::basic_selector<CharType>::basic_selector(const std::basic_string<CharType>& s)
 	: m_select_string(s)
