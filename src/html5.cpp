@@ -23,6 +23,9 @@ html::basic_selector<CharType>::basic_selector(std::basic_string<CharType>&&s)
 	build_matchers();
 }
 
+template html::basic_selector<char>::basic_selector(std::basic_string<char>&&s);
+template html::basic_selector<wchar_t>::basic_selector(std::basic_string<wchar_t>&&s);
+
 static bool strcmp_ignore_case(const std::string& a, const std::string& b)
 {
 	if ( a.size() == b.size())
@@ -179,11 +182,18 @@ void html::basic_selector<CharType>::build_matchers()
 	}while(c);
 }
 
+template void html::basic_selector<char>::build_matchers();
+template void html::basic_selector<wchar_t>::build_matchers();
+
 template<typename CharType>
 html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>* parent) noexcept
 	: m_parent(parent)
 {
 }
+
+template html::basic_dom<char>::basic_dom(html::basic_dom<char>* parent) noexcept;
+template html::basic_dom<wchar_t>::basic_dom(html::basic_dom<wchar_t>* parent) noexcept;
+
 
 template<typename CharType>
 html::basic_dom<CharType>::basic_dom(const std::basic_string<CharType>& html_page, html::basic_dom<CharType>* parent)
@@ -191,6 +201,9 @@ html::basic_dom<CharType>::basic_dom(const std::basic_string<CharType>& html_pag
 {
 	append_partial_html(html_page);
 }
+
+template html::basic_dom<char>::basic_dom(const std::basic_string<char>& html_page, html::basic_dom<char>* parent);
+template html::basic_dom<wchar_t>::basic_dom(const std::basic_string<wchar_t>& html_page, html::basic_dom<wchar_t>* parent);
 
 template<typename CharType>
 html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>&& d)
@@ -204,6 +217,9 @@ html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>&& d)
 {
 }
 
+template html::basic_dom<char>::basic_dom(html::basic_dom<char>&& d);
+template html::basic_dom<wchar_t>::basic_dom(html::basic_dom<wchar_t>&& d);
+
 template<typename CharType>
 html::basic_dom<CharType>::basic_dom(const html::basic_dom<CharType>& d)
 	: attributes(d.attributes)
@@ -214,6 +230,9 @@ html::basic_dom<CharType>::basic_dom(const html::basic_dom<CharType>& d)
 	, html_parser_feeder_inialized(false)
 {
 }
+
+template html::basic_dom<char>::basic_dom(const html::basic_dom<char>& d);
+template html::basic_dom<wchar_t>::basic_dom(const html::basic_dom<wchar_t>& d);
 
 template<typename CharType>
 html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(const html::basic_dom<CharType>& d)
@@ -227,6 +246,9 @@ html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(const html::basi
 	return *this;
 }
 
+template html::basic_dom<char>& html::basic_dom<char>::operator=(const html::basic_dom<char>& d);
+template html::basic_dom<wchar_t>& html::basic_dom<wchar_t>::operator=(const html::basic_dom<wchar_t>& d);
+
 template<typename CharType>
 html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(html::basic_dom<CharType>&& d)
 {
@@ -239,12 +261,18 @@ html::basic_dom<CharType>& html::basic_dom<CharType>::operator=(html::basic_dom<
 	return *this;
 }
 
+template html::basic_dom<char>& html::basic_dom<char>::operator=(html::basic_dom<char>&& d);
+template html::basic_dom<wchar_t>& html::basic_dom<wchar_t>::operator=(html::basic_dom<wchar_t>&& d);
+
 template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(html::basic_dom<CharType>* domer, const std::basic_string<CharType>& str)
 	: m_dom(domer)
 	, m_str(str)
 {
 }
+
+template html::detail::basic_dom_node_parser<char>::basic_dom_node_parser(html::basic_dom<char>* domer, const std::basic_string<char>& str);
+template html::detail::basic_dom_node_parser<wchar_t>::basic_dom_node_parser(html::basic_dom<wchar_t>* domer, const std::basic_string<wchar_t>& str);
 
 template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(const basic_dom_node_parser& other)
@@ -256,6 +284,9 @@ html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(const basic
 	a = 2;
 }
 
+template html::detail::basic_dom_node_parser<char>::basic_dom_node_parser(const basic_dom_node_parser& other);
+template html::detail::basic_dom_node_parser<wchar_t>::basic_dom_node_parser(const basic_dom_node_parser& other);
+
 template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(basic_dom_node_parser&& other)
 	: m_str(other.m_str)
@@ -266,6 +297,9 @@ html::detail::basic_dom_node_parser<CharType>::basic_dom_node_parser(basic_dom_n
 	other.m_dom = nullptr;
 }
 
+template html::detail::basic_dom_node_parser<char>::basic_dom_node_parser(basic_dom_node_parser&& other);
+template html::detail::basic_dom_node_parser<wchar_t>::basic_dom_node_parser(basic_dom_node_parser&& other);
+
 template<typename CharType>
 html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
 {
@@ -274,6 +308,9 @@ html::detail::basic_dom_node_parser<CharType>::~basic_dom_node_parser()
 	if (m_sig_connection.connected())
 		m_sig_connection.disconnect();
 }
+
+template html::detail::basic_dom_node_parser<char>::~basic_dom_node_parser();
+template html::detail::basic_dom_node_parser<wchar_t>::~basic_dom_node_parser();
 
 template<typename CharType>
 void html::detail::basic_dom_node_parser<CharType>::operator()(tag_stage s, std::shared_ptr<basic_dom<CharType>> nodeptr)
@@ -289,10 +326,15 @@ void html::detail::basic_dom_node_parser<CharType>::operator()(tag_stage s, std:
 	auto macher_it = m_selector->begin();
 
 
+	if ((*macher_it)(*nodeptr))
+	{
+		++macher_it;
+	}
 
-
-
-
+	if (macher_it == m_selector->end())
+	{
+		m_callback(s, nodeptr);
+	}
 
 	m_callback(s, nodeptr);
 }
@@ -440,6 +482,9 @@ html::basic_dom<CharType> html::basic_dom<CharType>::operator[](const basic_sele
 	return matched_dom;
 }
 
+template html::basic_dom<char> html::basic_dom<char>::operator[](const basic_selector<char>& selector_) const;
+template html::basic_dom<wchar_t> html::basic_dom<wchar_t>::operator[](const basic_selector<wchar_t>& selector_) const;
+
 template<typename CharType>
 static std::basic_string<CharType> basic_literal(const char* literal);
 
@@ -448,13 +493,6 @@ std::basic_string<char> basic_literal(const char* literal)
 {
 	return literal;
 };
-
-template<>
-std::basic_string<wchar_t> basic_literal(const char* literal)
-{
-
-};
-
 
 template<typename CharType>
 static inline std::basic_string<CharType> get_char_set(const std::basic_string<CharType> type, const std::basic_string<CharType> & default_charset)
@@ -476,15 +514,15 @@ static inline std::basic_string<CharType> get_char_set(const std::basic_string<C
 	return default_charset;
 }
 
-template<typename CharType>
-std::basic_string<CharType> html::basic_dom<CharType>::basic_charset(const std::string& default_charset) const
+template<>
+std::basic_string<char> html::basic_dom<char>::basic_charset(const std::string& default_charset) const
 {
 	auto charset_dom = (*this)["meta"];
 
 	try {
 		for (auto & c : charset_dom.children)
 		{
-			dom_walk(c, [this, &default_charset](std::shared_ptr<basic_dom<CharType>> i)
+			dom_walk(c, [this, &default_charset](std::shared_ptr<basic_dom<char>> i)
 			{
 				if (strcmp_ignore_case(i->get_attr("http-equiv"), "content-type"))
 				{
@@ -531,6 +569,9 @@ std::basic_string<CharType> html::basic_dom<CharType>::to_plain_text() const
 
 	return ret;
 }
+
+template std::basic_string<char> html::basic_dom<char>::to_plain_text() const;
+template std::basic_string<wchar_t> html::basic_dom<wchar_t>::to_plain_text() const;
 
 template<typename CharType>
 void html::basic_dom<CharType>::to_html(std::basic_ostream<CharType>* out, int deep) const
@@ -590,6 +631,9 @@ std::basic_string<CharType> html::basic_dom<CharType>::to_html() const
 	to_html(&ret, -1);
 	return ret.str();
 }
+
+template std::basic_string<char> html::basic_dom<char>::to_html() const;
+template std::basic_string<wchar_t> html::basic_dom<wchar_t>::to_html() const;
 
 #define CASE_BLANK case ' ': case '\r': case '\n': case '\t'
 
@@ -1196,35 +1240,5 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 
 #undef CASE_BLANK
 
-namespace {
-void extport_char_type()
-{
-	html::dom abc;
-
-	abc.append_partial_html("") | "*";
-	abc.to_html();
-	abc.to_plain_text();
-	abc.charset();
-
-	html::dom abcd("hello");
-
-	html::dom abcdef(std::move(abc));
-
-	abc["hello"];
-
-}
-
-void extport_wchar_type()
-{
-	html::wdom abc;
-
-	abc.append_partial_html(L"") | L"*";
-	abc.to_html();
-	abc.to_plain_text();
-
-	abc[L"hello"];
-
- 	// abc.charset(); wchar_t version does not have this member
-}
-
-}
+template void html::basic_dom<char>::html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<char>*>::pull_type& html_page_source);
+template void html::basic_dom<wchar_t>::html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<wchar_t>*>::pull_type& html_page_source);
