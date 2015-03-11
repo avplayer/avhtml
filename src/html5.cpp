@@ -514,8 +514,9 @@ static inline std::basic_string<CharType> get_char_set(const std::basic_string<C
 	return default_charset;
 }
 
+namespace html{
 template<>
-std::basic_string<char> html::basic_dom<char>::basic_charset(const std::string& default_charset) const
+std::basic_string<char> basic_dom<char>::basic_charset(const std::string& default_charset) const
 {
 	auto charset_dom = (*this)["meta"];
 
@@ -550,6 +551,7 @@ std::basic_string<char> html::basic_dom<char>::basic_charset(const std::string& 
 	}
 
 	return default_charset;
+}
 }
 
 template<typename CharType>
