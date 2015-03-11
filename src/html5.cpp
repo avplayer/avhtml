@@ -1240,5 +1240,5 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 
 #undef CASE_BLANK
 
-template void html::basic_dom<char>::html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<char>*>::pull_type& html_page_source);
-template void html::basic_dom<wchar_t>::html_parser(typename boost::coroutines::asymmetric_coroutine<const std::basic_string<wchar_t>*>::pull_type& html_page_source);
+template void html::basic_dom<char>::html_parser(boost::coroutines::asymmetric_coroutine<const std::basic_string<char>*>::pull_type& html_page_source);
+template void html::basic_dom<wchar_t>::html_parser(boost::coroutines::asymmetric_coroutine<const std::basic_string<wchar_t>*>::pull_type& html_page_source);

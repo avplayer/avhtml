@@ -57,6 +57,9 @@ void test()
 
 	page.append_partial_html("<html><head>");
 	page.append_partial_html("<title>hello world</title");
+
+	assert(page["title"].to_plain_text() == "hello world" );
+
 	page.append_partial_html("></head></html>");
 
 	assert(page["title"].to_plain_text() == "hello world" );
