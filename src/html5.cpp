@@ -1,8 +1,9 @@
 ﻿
 #include "html5.hpp"
 #include <boost/regex.hpp>
-
 #ifdef _MSC_VER
+#include <Windows.h>
+
 #define strcasecmp stricmp
 #define strncasecmp  strnicmp
 
