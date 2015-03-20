@@ -29,4 +29,17 @@
 
 build/
 
+
 *.kdev4
+*.sdf
+*.pdb
+*.exp
+*.opensdf
+*.suo
+
+# windows
+[Dd]ebug/
+[Rr]elease/
+[Bb]bin/
+[Bb]oost/
+lib/boost/*

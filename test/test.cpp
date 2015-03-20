@@ -9,7 +9,8 @@ const char msg_usage[] = "\nusage : %s <html file name> <selector>\n\n";
 
 
 void callback(std::shared_ptr<html::dom>)
-{}
+{
+}
 
 int main(int argc, char *argv[])
 {
