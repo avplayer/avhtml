@@ -35,6 +35,7 @@ build/
 *.pdb
 *.exp
 *.opensdf
+*.suo
 
 # windows
 [Dd]ebug/
