@@ -43,3 +43,4 @@ build/
 [Bb]bin/
 [Bb]oost/
 lib/boost/*
+*.ilk

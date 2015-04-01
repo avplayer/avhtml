@@ -64,9 +64,9 @@ void test()
 | :lt                | page["p:lt(3)"]        | list <p> tag with index < 3       |         |
 | :input             | page[":input"]         | all input tags                    |         |
 | [attribute]        | page["[href]"]         | all tags with href attribute      | √       |
-| [attribute=value]  | page["[href='#']"]     | all tags with empty link          |         |
-| [attribute!=value] | page["[href!='#']"]    | all tags with not empty link      |         |
-| [attribute$=value] | page["[href$='.jpg']"] | all tags with jpg link            |         |
+| [attribute=value]  | page["[href='#']"]     | all tags with empty link          | √       |
+| [attribute!=value] | page["[href!='#']"]    | all tags with not empty link      | √       |
+| [attribute$=value] | page["[href$='.jpg']"] | all tags with jpg link            | √       |
 
 选择器支持组合
 
