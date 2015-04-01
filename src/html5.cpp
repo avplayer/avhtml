@@ -459,7 +459,7 @@ bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom
 		if (it == d.attributes.end()) return false;
 
 		if (matching_attr_operator == operator_string_equalityt<CharType>())
-			strcmp_ignore_case(it->second, matching_attr_value);
+			return strcmp_ignore_case(it->second, matching_attr_value);
 		else if (matching_attr_operator == operator_string_contain<CharType>())
 		{
 			if (matching_attr_value == selector_empty_string<CharType>()) return it->second.empty();

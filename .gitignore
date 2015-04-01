@@ -36,6 +36,7 @@ build/
 *.exp
 *.opensdf
 *.suo
+*.ilk
 
 # windows
 [Dd]ebug/
@@ -43,4 +44,5 @@ build/
 [Bb]bin/
 [Bb]oost/
 lib/boost/*
-*.ilk
+
+
