@@ -41,6 +41,7 @@ static bool strcmp_ignore_case(const std::wstring& a, const std::wstring& b)
 	return false;
 }
 
+
 /*
  * matcher 是分代的
  * matcher 会先执行一次匹配, 然后再从上一次执行的结果里执行匹配
@@ -165,13 +166,20 @@ void html::basic_selector<CharType>::build_matchers()
 					case ' ':
 					{
 						condition match_condition;
-
-						match_condition.matching_attr = std::move(matcher_str);
+						bool attr = false;
+						std::for_each(matcher_str.begin(), matcher_str.end(), [&match_condition, &attr](const CharType C){
+							if (C == '=' || C == '$' || C == '!')
+							{
+								attr = true;
+								match_condition.matching_attr_operator += C;
+							}
+							else if ( C != '\'' )
+								(attr ? match_condition.matching_attr_value : match_condition.matching_attr) += C;
+						});
+						matcher_str.clear();
 						matcher.m_conditions.push_back(match_condition);
 						break;
 					}
-					case METACHAR:
-					break;
 					default:
 						matcher_str += c;
 				}
@@ -392,6 +400,24 @@ template<> const char* script_tag_string<char>(){return "script";}
 template<> const wchar_t* script_tag_string<wchar_t>(){return L"script";}
 
 
+template<typename CharType> const CharType* operator_string_contain();
+template<> const char* operator_string_contain<char>(){ return "$="; }
+template<> const wchar_t* operator_string_contain<wchar_t>(){ return L"$="; }
+
+template<typename CharType> const CharType* operator_string_inequalityt();
+template<> const char* operator_string_inequalityt<char>(){ return "!="; }
+template<> const wchar_t* operator_string_inequalityt<wchar_t>(){ return L"!="; }
+
+template<typename CharType> const CharType* operator_string_equalityt();
+template<> const char* operator_string_equalityt<char>(){ return "="; }
+template<> const wchar_t* operator_string_equalityt<wchar_t>(){ return L"="; }
+
+template<typename CharType> const CharType* selector_empty_string();
+template<> const char* selector_empty_string<char>(){ return "#"; }
+template<> const wchar_t* selector_empty_string<wchar_t>(){ return L"#"; }
+
+
+
 template<typename CharType> template<class Handler>
 void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharType>> d, Handler handler)
 {
@@ -427,12 +453,37 @@ bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom
 		}
 	}
 
-	if(!matching_attr.empty())
+	if (!matching_attr.empty())
 	{
 		auto it = d.attributes.find(matching_attr);
-		return it != d.attributes.end();
-	}
+		if (it == d.attributes.end()) return false;
 
+		if (matching_attr_operator == operator_string_equalityt<CharType>())
+			strcmp_ignore_case(it->second, matching_attr_value);
+		else if (matching_attr_operator == operator_string_contain<CharType>())
+		{
+			if (matching_attr_value == selector_empty_string<CharType>()) return it->second.empty();
+			else
+			{
+				bool find_result = it->second.find(matching_attr_value) != std::basic_string<CharType>::npos;
+				return find_result;
+			}
+		}
+		else if (matching_attr_operator == operator_string_inequalityt<CharType>())
+		{
+			if (matching_attr_value == selector_empty_string<CharType>()) return !it->second.empty();
+			else
+			{
+				bool find_result = it->second.find(matching_attr_value) == std::basic_string<CharType>::npos;
+				return find_result;
+			}
+		}
+		else
+		{
+			// 只要存在就可以了
+			return true;
+		}
+	}
 	return false;
 }
 

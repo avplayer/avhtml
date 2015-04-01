@@ -6,6 +6,7 @@
 
 
 const char msg_usage[] = "\nusage : %s <html file name> <selector>\n\n";
+void test();
 
 
 void callback(std::shared_ptr<html::dom>)
@@ -14,6 +15,7 @@ void callback(std::shared_ptr<html::dom>)
 
 int main(int argc, char *argv[])
 {
+	test();
 	if (argc < 3)
 	{
 		if (argc > 0)
@@ -55,13 +57,17 @@ int main(int argc, char *argv[])
 void test()
 {
 	html::dom page;
+	html::dom page_href_http_node;
 
 	page.append_partial_html("<html><head>");
-	page.append_partial_html("<title>hello world</title");
-
-	assert(page["title"].to_plain_text() == "hello world" );
-
+	page.append_partial_html("<title id=\"1111\" href=\"http://www.baidu.com\">hello world</title");
 	page.append_partial_html("></head></html>");
 
-	assert(page["title"].to_plain_text() == "hello world" );
+	//page["[href='#']"];
+	//page["[href!='#']"];
+
+	page = page["[href$='http']"];
+
+	printf("value : %s \n", page.to_plain_text().c_str());
+
 }

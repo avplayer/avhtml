@@ -50,6 +50,9 @@ namespace html{
 			std::basic_string<CharType> matching_name;
 			std::basic_string<CharType> matching_index;
 			std::basic_string<CharType> matching_attr;
+			std::basic_string<CharType> matching_attr_value;
+			std::basic_string<CharType> matching_attr_operator;
+
 			// 判断 basic_dom<CharType> 是否与当前的 condition 一致
 			bool operator()(const basic_dom<CharType>&) const;
 		};
