@@ -50,10 +50,15 @@ namespace html{
 			std::basic_string<CharType> matching_name;
 			std::basic_string<CharType> matching_index;
 			std::basic_string<CharType> matching_attr;
+			std::basic_string<CharType> matching_attr_value;
+			std::basic_string<CharType> matching_attr_operator;
+
+			// 判断 basic_dom<CharType> 是否与当前的 condition 一致
 			bool operator()(const basic_dom<CharType>&) const;
 		};
 
 		struct selector_matcher{
+			// 轮询 m_conditions ，判断是否存在与该 basic_dom 对象一致的 condition
 			bool operator()(const basic_dom<CharType>&) const;
 
 		private:
@@ -159,6 +164,11 @@ namespace html{
 		detail::basic_dom_node_parser<CharType> append_partial_html(const std::basic_string<CharType>&);
 
 	public:
+		/*
+		传入的 select 语法，先是通过 basic_selector 的构造函数，生成一个 basic_selector 对象
+		解析完毕后，根据 basic_selector 的 condition 对象进行匹配。
+		只有解析成功以后。dom 对象这个容器才会被填充进对应的内容，否则全部都为空
+		*/
 		basic_dom<CharType>  operator[](const basic_selector<CharType>&) const;
 
 		std::basic_string<CharType> to_html() const;

@@ -7,6 +7,9 @@
 
 const char msg_usage[] = "\nusage : %s <html file name> <selector>\n\n";
 
+// 如果你不希望跑命令行解析。那么你可以直接调用这个函数跑一下。
+void test();
+
 
 void callback(std::shared_ptr<html::dom>)
 {
@@ -55,13 +58,25 @@ int main(int argc, char *argv[])
 void test()
 {
 	html::dom page;
+	html::dom page_href_http_node;
 
 	page.append_partial_html("<html><head>");
-	page.append_partial_html("<title>hello world</title");
-
-	assert(page["title"].to_plain_text() == "hello world" );
-
+	page.append_partial_html("<title id=\"id_test\" href=\"http://www.baidu.com\" bkcolor=\"ff000000\" textcolor=\"ffffffff\">hello world</title");
 	page.append_partial_html("></head></html>");
 
-	assert(page["title"].to_plain_text() == "hello world" );
+	page = page["#id_test"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
+	page["[href]"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
+	page = page["[href$='http']"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
+	page = page["[bkcolor='ff000000']"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
+	page = page["[textcolor!='ff000000']"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
 }
