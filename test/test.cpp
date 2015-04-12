@@ -64,6 +64,11 @@ void test()
 	page.append_partial_html("<title id=\"id_test\" href=\"http://www.baidu.com\" bkcolor=\"ff000000\" textcolor=\"ffffffff\">hello world</title");
 	page.append_partial_html("></head></html>");
 
+	page = page["title:first"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+	page = page["title:eq(1)"];
+	printf("value : %s \n", page.to_plain_text().c_str());
+
 	page = page["#id_test"];
 	printf("value : %s \n", page.to_plain_text().c_str());
 

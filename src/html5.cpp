@@ -1,6 +1,7 @@
 ﻿
 #include "html5.hpp"
 #include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp> 
 #ifdef _MSC_VER
 #include <Windows.h>
 
@@ -9,6 +10,61 @@
 
 #define wcsncasecmp(a,b,l) lstrcmpiW(a,b)
 #endif
+
+
+template<typename CharType> const CharType* comment_tag_string();
+template<> const char* comment_tag_string<char>(){ return "<!--"; }
+template<> const wchar_t* comment_tag_string<wchar_t>(){ return L"<!--"; }
+
+template<typename CharType> const CharType* id_tag_string();
+template<> const char* id_tag_string<char>(){ return "id"; }
+template<> const wchar_t* id_tag_string<wchar_t>(){ return L"id"; }
+
+template<typename CharType> const CharType* class_tag_string();
+template<> const char* class_tag_string<char>(){ return "class"; }
+template<> const wchar_t* class_tag_string<wchar_t>(){ return L"class"; }
+
+template<typename CharType> const CharType* script_tag_string();
+template<> const char* script_tag_string<char>(){ return "script"; }
+template<> const wchar_t* script_tag_string<wchar_t>(){ return L"script"; }
+
+
+template<typename CharType> const CharType* operator_string_contain();
+template<> const char* operator_string_contain<char>(){ return "$="; }
+template<> const wchar_t* operator_string_contain<wchar_t>(){ return L"$="; }
+
+template<typename CharType> const CharType* operator_string_inequalityt();
+template<> const char* operator_string_inequalityt<char>(){ return "!="; }
+template<> const wchar_t* operator_string_inequalityt<wchar_t>(){ return L"!="; }
+
+template<typename CharType> const CharType* operator_string_equalityt();
+template<> const char* operator_string_equalityt<char>(){ return "="; }
+template<> const wchar_t* operator_string_equalityt<wchar_t>(){ return L"="; }
+
+template<typename CharType> const CharType* selector_empty_string();
+template<> const char* selector_empty_string<char>(){ return "#"; }
+template<> const wchar_t* selector_empty_string<wchar_t>(){ return L"#"; }
+
+template<typename CharType> const CharType* operator_string_first();
+template<> const char* operator_string_first<char>(){ return "first"; }
+template<> const wchar_t* operator_string_first<wchar_t>(){ return L"first"; }
+
+template<typename CharType> const CharType* operator_string_last();
+template<> const char* operator_string_last<char>(){ return "last"; }
+template<> const wchar_t* operator_string_last<wchar_t>(){ return L"last"; }
+
+template<typename CharType> const CharType* string_eq();
+template<> const char* string_eq<char>(){ return "eq"; }
+template<> const wchar_t* string_eq<wchar_t>(){ return L"eq"; }
+
+template<typename CharType> const CharType* string_qt();
+template<> const char* string_qt<char>(){ return "qt"; }
+template<> const wchar_t* string_qt<wchar_t>(){ return L"qt"; }
+
+template<typename CharType> const CharType* string_lt();
+template<> const char* string_lt<char>(){ return "lt"; }
+template<> const wchar_t* string_lt<wchar_t>(){ return L"lt"; }
+
 
 template<typename CharType>
 html::basic_selector<CharType>::basic_selector(const std::basic_string<CharType>& s)
@@ -107,7 +163,6 @@ void html::basic_selector<CharType>::build_matchers()
 							if (!matcher_str.empty())
 							{
 								condition match_condition;
-
 								switch(state)
 								{
 									case 0:
@@ -136,6 +191,8 @@ void html::basic_selector<CharType>::build_matchers()
 					case '[':
 						state = '[';
 						break;
+					case ':':
+						state = c;
 					default:
 						matcher_str += c;
 				}
@@ -148,16 +205,47 @@ void html::basic_selector<CharType>::build_matchers()
 			break;
 			case ':':
 			{
-				// 冒号暂时不实现
-				switch(c)
+				switch (c)
 				{
-					case METACHAR:
-						state = c;
-						break;
+				case METACHAR:
+					{
+						condition match_condition;
+						int tag_type = 0;
+						std::for_each(matcher_str.begin(), matcher_str.end(), [&match_condition, &tag_type](const CharType Word){
+							if (Word == ':')
+								tag_type = 1;
+							else if (Word == '(' || Word == ')')
+								tag_type = 2;
+							else if (0 == tag_type)
+								match_condition.matching_name += Word;
+							else if (1 == tag_type)
+								match_condition.matching_attr_operator += Word;
+							else if (2 == tag_type)
+								match_condition.matching_index += Word;
+						});
+	
+						if (match_condition.matching_attr_operator == operator_string_first<CharType>())
+						{
+							match_condition.matching_attr_operator = string_eq<CharType>();
+							match_condition.matching_index = '1';
+						}
+						else if (match_condition.matching_attr_operator == operator_string_last<CharType>())
+						{
+							match_condition.matching_attr_operator = string_eq<CharType>();
+						}
+						matcher.m_conditions.push_back(match_condition);
+						m_matchers.push_back(std::move(matcher));
+						matcher_str.clear();
+						state = 0;
+					}
+					break;
+				default:
+					matcher_str += c;
+					break;
 				}
 
 			}break;
-			case '[':// 暂时不实现
+			case '[':
 			{
 				switch(c)
 				{
@@ -383,41 +471,6 @@ html::detail::basic_dom_node_parser<CharType> html::basic_dom<CharType>::append_
 	return detail::basic_dom_node_parser<CharType>(this, str);
 }
 
-template<typename CharType> const CharType* comment_tag_string();
-template<> const char* comment_tag_string<char>(){return "<!--";}
-template<> const wchar_t* comment_tag_string<wchar_t>(){return L"<!--";}
-
-template<typename CharType> const CharType* id_tag_string();
-template<> const char* id_tag_string<char>(){return "id";}
-template<> const wchar_t* id_tag_string<wchar_t>(){return L"id";}
-
-template<typename CharType> const CharType* class_tag_string();
-template<> const char* class_tag_string<char>(){return "class";}
-template<> const wchar_t* class_tag_string<wchar_t>(){return L"class";}
-
-template<typename CharType> const CharType* script_tag_string();
-template<> const char* script_tag_string<char>(){return "script";}
-template<> const wchar_t* script_tag_string<wchar_t>(){return L"script";}
-
-
-template<typename CharType> const CharType* operator_string_contain();
-template<> const char* operator_string_contain<char>(){ return "$="; }
-template<> const wchar_t* operator_string_contain<wchar_t>(){ return L"$="; }
-
-template<typename CharType> const CharType* operator_string_inequalityt();
-template<> const char* operator_string_inequalityt<char>(){ return "!="; }
-template<> const wchar_t* operator_string_inequalityt<wchar_t>(){ return L"!="; }
-
-template<typename CharType> const CharType* operator_string_equalityt();
-template<> const char* operator_string_equalityt<char>(){ return "="; }
-template<> const wchar_t* operator_string_equalityt<wchar_t>(){ return L"="; }
-
-template<typename CharType> const CharType* selector_empty_string();
-template<> const char* selector_empty_string<char>(){ return "#"; }
-template<> const wchar_t* selector_empty_string<wchar_t>(){ return L"#"; }
-
-
-
 template<typename CharType> template<class Handler>
 void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharType>> d, Handler handler)
 {
@@ -430,7 +483,7 @@ void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharTyp
 }
 
 template<typename CharType>
-bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom<CharType>& d) const
+bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom<CharType>& d, int& match_index) const
 {
 	if (!matching_tag_name.empty())
 	{
@@ -450,6 +503,22 @@ bool html::basic_selector<CharType>::condition::operator()(const html::basic_dom
 		if ( it != d.attributes.end())
 		{
 			return it->second == matching_class;
+		}
+	}
+
+	if (!matching_name.empty())
+	{
+		if (matching_attr_operator == string_eq<CharType>())
+		{
+			if (matching_name == d.tag_name)
+			{
+				match_index += 1;
+				const int index = boost::lexical_cast<int>(matching_index);
+				if (match_index == index)
+					return true;
+				else
+					return false;
+			}
 		}
 	}
 
@@ -494,10 +563,11 @@ bool html::basic_selector<CharType>::selector_matcher::operator()(const html::ba
 		return true;
 
 	bool all_match = false;
+	int  match_index = 0;
 
 	for (auto& c : m_conditions)
 	{
-		if(c(d))
+		if(c(d, match_index))
 		{
 			continue;
 		}
@@ -524,9 +594,9 @@ html::basic_dom<CharType> html::basic_dom<CharType>::operator[](const basic_sele
 				if (matcher(*i))
 				{
 					matched_dom.children.push_back(i);
-					return false;
+					return false;		// 节点匹配成功，不再遍历子节点,跳转到下一个节点进行遍历
 				}
-				return true;
+				return true;			// 继续往子节点遍历。
 			});
 		}
 	}
