@@ -471,6 +471,9 @@ html::detail::basic_dom_node_parser<CharType> html::basic_dom<CharType>::append_
 	return detail::basic_dom_node_parser<CharType>(this, str);
 }
 
+template html::detail::basic_dom_node_parser<char> html::basic_dom<char>::append_partial_html(const std::basic_string<char>& str);
+template html::detail::basic_dom_node_parser<wchar_t> html::basic_dom<wchar_t>::append_partial_html(const std::basic_string<wchar_t>& str);
+
 template<typename CharType> template<class Handler>
 void html::basic_dom<CharType>::dom_walk(std::shared_ptr<html::basic_dom<CharType>> d, Handler handler)
 {
