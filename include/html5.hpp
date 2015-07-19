@@ -103,23 +103,23 @@ namespace html{
 		public: // only for signals2
 			basic_dom_node_parser(const basic_dom_node_parser&);
 			// called from dom
-			void operator()(tag_stage, std::shared_ptr<basic_dom<CharType>>);
+			void operator()(tag_stage, std::shared_ptr<basic_dom<CharType> >);
 
 		public: // interface
 			template<typename Handler>
 			typename std::enable_if<
-				std::is_same<typename std::result_of<Handler(tag_stage, std::shared_ptr<basic_dom<CharType>>)>::type, void>::value
+				std::is_same<typename std::result_of<Handler(tag_stage, std::shared_ptr<basic_dom<CharType> >)>::type, void>::value
 			>::type
 			operator |(const Handler& node_reciver)
 			{
-				set_callback_fuction(decltype(m_callback)(node_reciver));
+				set_callback_fuction((decltype(m_callback))(node_reciver));
 			}
 
 			template<typename Handler>
 			typename std::enable_if<std::is_function<Handler>::value>::type
 			operator |(const Handler& node_reciver)
 			{
-				set_callback_fuction(decltype(m_callback)(node_reciver));
+				set_callback_fuction((decltype(m_callback))(node_reciver));
 			}
 
 			basic_dom_node_parser& operator |(const basic_selector<CharType>&);
@@ -130,26 +130,26 @@ namespace html{
 			friend class basic_dom<CharType>;
 		private:
 
-			void set_callback_fuction(std::function<void(tag_stage, std::shared_ptr<basic_dom<CharType>>)>&& cb);
+			void set_callback_fuction(std::function<void(tag_stage, std::shared_ptr<basic_dom<CharType> >)>&& cb);
 
 			basic_dom<CharType>* m_dom;
 			const basic_selector<CharType>* m_selector;
 
 			const std::basic_string<CharType>& m_str;
 
-			std::function<void(tag_stage, std::shared_ptr<basic_dom<CharType>>)> m_callback;
+			std::function<void(tag_stage, std::shared_ptr<basic_dom<CharType> >)> m_callback;
 			boost::signals2::scoped_connection m_sig_connection;
 		};
 	}
 
 
 	template<typename CharType>
-	class basic_dom : public std::enable_shared_from_this<basic_dom<CharType>>
+	class basic_dom : public std::enable_shared_from_this<basic_dom<CharType> >
 	{
 	public:
 
 		// 默认构造.
-		basic_dom(basic_dom<CharType>* parent = nullptr) noexcept;
+		basic_dom(basic_dom<CharType>* parent = nullptr);
 
 		// 从html构造 DOM.
 		explicit basic_dom(const std::basic_string<CharType>& html_page, basic_dom<CharType>* parent = nullptr);
@@ -177,14 +177,14 @@ namespace html{
 
 		// return charset of the page if page contain meta http-equiv= content="charset="
 		template<typename... Dummy, typename U = CharType>
-		typename std::enable_if<std::is_same<U, char>::value, std::basic_string<CharType>>::type
+		typename std::enable_if<std::is_same<U, char>::value, std::basic_string<CharType> >::type
 		charset(const std::string& default_charset = "UTF-8") const
 		{
 			static_assert(sizeof...(Dummy)==0, "Do not specify template arguments!");
 			return basic_charset(default_charset);
 		}
 
-		std::vector<std::shared_ptr<basic_dom<CharType>>> get_children(){
+		std::vector<std::shared_ptr<basic_dom<CharType> > > get_children(){
 			return children;
 		}
 
@@ -205,7 +205,7 @@ namespace html{
 		typename boost::coroutines::asymmetric_coroutine<const std::basic_string<CharType>*>::push_type html_parser_feeder;
 		bool html_parser_feeder_inialized = false;
 
-		typedef std::shared_ptr<basic_dom<CharType>> basic_dom_ptr;
+		typedef std::shared_ptr<basic_dom<CharType> > basic_dom_ptr;
 		boost::signals2::signal<void(tag_stage, basic_dom_ptr)> m_new_node_signal;
 
  		std::basic_string<CharType> basic_charset(const std::string& default_charset) const;
@@ -215,7 +215,7 @@ namespace html{
 		void to_html(std::basic_ostream<CharType>*, int deep) const;
 
 
-		std::map<std::basic_string<CharType>, std::basic_string<CharType>> attributes;
+		std::map<std::basic_string<CharType>, std::basic_string<CharType> > attributes;
 		std::basic_string<CharType> tag_name;
 
 		std::basic_string<CharType> content_text;

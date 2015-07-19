@@ -283,13 +283,13 @@ template void html::basic_selector<char>::build_matchers();
 template void html::basic_selector<wchar_t>::build_matchers();
 
 template<typename CharType>
-html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>* parent) noexcept
+html::basic_dom<CharType>::basic_dom(html::basic_dom<CharType>* parent)
 	: m_parent(parent)
 {
 }
 
-template html::basic_dom<char>::basic_dom(html::basic_dom<char>* parent) noexcept;
-template html::basic_dom<wchar_t>::basic_dom(html::basic_dom<wchar_t>* parent) noexcept;
+template html::basic_dom<char>::basic_dom(html::basic_dom<char>* parent);
+template html::basic_dom<wchar_t>::basic_dom(html::basic_dom<wchar_t>* parent);
 
 
 template<typename CharType>
@@ -639,6 +639,8 @@ static inline std::basic_string<CharType> get_char_set(const std::basic_string<C
 	return default_charset;
 }
 
+// TODO: 加入stream构造函数
+// TODO: 命名空间修改
 namespace html{
 template<>
 std::basic_string<char> basic_dom<char>::basic_charset(const std::string& default_charset) const
