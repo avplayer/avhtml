@@ -1,5 +1,4 @@
 ﻿
-#include "html5.hpp"
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp> 
 #ifdef _MSC_VER
@@ -65,6 +64,7 @@ template<typename CharType> const CharType* string_lt();
 template<> const char* string_lt<char>(){ return "lt"; }
 template<> const wchar_t* string_lt<wchar_t>(){ return L"lt"; }
 
+#include "html5.hpp"
 
 template<typename CharType>
 html::basic_selector<CharType>::basic_selector(const std::basic_string<CharType>& s)

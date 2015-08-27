@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <boost/coroutine/asymmetric_coroutine.hpp>
 #include <boost/signals2/signal.hpp>
