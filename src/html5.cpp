@@ -1,15 +1,15 @@
-﻿
-#include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp> 
 #ifdef _MSC_VER
 #include <Windows.h>
+#define _SCL_SECURE_NO_WARNINGS
 
-#define strcasecmp stricmp
-#define strncasecmp  strnicmp
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
 
 #define wcsncasecmp(a,b,l) lstrcmpiW(a,b)
 #endif
 
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp> 
 
 template<typename CharType> const CharType* comment_tag_string();
 template<> const char* comment_tag_string<char>(){ return "<!--"; }
@@ -129,13 +129,13 @@ void html::basic_selector<CharType>::build_matchers()
 
 	int state = 0;
 
-	auto getc = [this, &str_iterator]() -> char {
+	auto getc = [this, &str_iterator]() -> CharType {
 		if (str_iterator != m_select_string.end())
 			return *str_iterator++;
 		return 0;
 	};
 
-	auto get_escape = [&getc]() -> char
+	auto get_escape = [&getc]() -> CharType
 	{
 		return getc();
 	};
@@ -790,12 +790,12 @@ void html::basic_dom<CharType>::html_parser(typename boost::coroutines::asymmetr
 		return *_cur_str_it++;
 	};
 
-	auto get_escape = [&getc]() -> char
+	auto get_escape = [&getc]() -> CharType
 	{
 		return getc();
 	};
 
-	auto get_string = [&getc, &get_escape, &pre_state, &state](char quote_char)
+	auto get_string = [&getc, &get_escape, &pre_state, &state](CharType quote_char)
 	{
 		std::basic_string<CharType> ret;
 
